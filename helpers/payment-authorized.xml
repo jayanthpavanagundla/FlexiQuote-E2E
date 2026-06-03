@@ -1,0 +1,40 @@
+<QML_PaymentAuthorised>
+  <Version>
+    <QMLVersion>3.10</QMLVersion>
+  </Version>
+  <Source>
+    <OrgType>REP</OrgType>
+    <AppVersion>3.1</AppVersion>
+    <AppName>FlexiQuote</AppName>
+    <TimeStamp>{{TIMESTAMP}}</TimeStamp>
+  </Source>
+  <Destination>
+    <OrgType>INS</OrgType>
+  </Destination>
+  <MessageNo>{{MESSAGE_NO}}</MessageNo>
+  <Insurer>
+    <UnderwriterName>{{UNDERWRITER_NAME}}</UnderwriterName>
+    <InsurerDetail FieldName="ABN">{{INSURER_ABN}}</InsurerDetail>
+  </Insurer>
+  <Repairer>
+    <RepairerID>{{REPAIRER_ID}}</RepairerID>
+    <RepairerName>{{REPAIRER_NAME}}</RepairerName>
+    <RepairerDetails FieldName="ABN">{{REPAIRER_ABN}}</RepairerDetails>
+  </Repairer>
+  <ClaimHeader>
+    <VehicleID>{{VEHICLE_ID}}</VehicleID>
+    <InsuranceClaimNo>{{INSURANCE_CLAIM_NO}}</InsuranceClaimNo>
+    <ReinstatementNo>{{REINSTATEMENT_NO}}</ReinstatementNo>
+  </ClaimHeader>
+  <QuoteNo>{{QUOTE_NO}}</QuoteNo>
+  <Vehicle>
+    <RegistrationNo>{{REGISTRATION_NO}}</RegistrationNo>
+    <BuildDate>{{BUILD_DATE}}</BuildDate>
+    <BodyStyle>{{BODY_STYLE}}</BodyStyle>
+  </Vehicle>
+  <PayAuthorityDetails>
+    <RepairerTaxInvoiceNo>{{REPAIRER_TAX_INVOICE_NO}}</RepairerTaxInvoiceNo>
+    <PayAuthorisedDate>{{PAY_AUTHORISED_DATE}}</PayAuthorisedDate>
+    <PaymentAmount>{{PAYMENT_AMOUNT}}</PaymentAmount>
+  </PayAuthorityDetails>
+</QML_PaymentAuthorised>

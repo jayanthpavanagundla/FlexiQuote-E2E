@@ -1,0 +1,33 @@
+{
+  "name": "flexiquote-e2e",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:staging": "cross-env ENV=staging playwright test",
+    "test:staging:firefox": "cross-env ENV=staging BROWSER=firefox playwright test",
+    "test:staging:webkit": "cross-env ENV=staging BROWSER=webkit playwright test",
+    "test:prod": "cross-env ENV=production playwright test",
+    "test:prod:firefox": "cross-env ENV=production BROWSER=firefox playwright test",
+    "test:prod:webkit": "cross-env ENV=production BROWSER=webkit playwright test",
+    "test:local": "cross-env ENV=local playwright test",
+    "test:local:firefox": "cross-env ENV=local BROWSER=firefox playwright test",
+    "test:local:webkit": "cross-env ENV=local BROWSER=webkit playwright test",
+    "report": "playwright show-report"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.6.0",
+    "@types/pdf-parse": "^1.1.5",
+    "allure-playwright": "^3.8.0",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2"
+  },
+  "dependencies": {
+    "pdf-parse": "^1.1.1"
+  }
+}

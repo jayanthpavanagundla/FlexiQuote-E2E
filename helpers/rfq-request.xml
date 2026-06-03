@@ -1,0 +1,66 @@
+<QML_RequestForQuote>
+  <Version>
+    <QMLVersion>3.10</QMLVersion>
+  </Version>
+  <Source>
+    <OrgType>INS</OrgType>
+    <AppVersion>5.0</AppVersion>
+    <AppName>ORM</AppName>
+    <TimeStamp>2026-04-07T10:20:34.587+10:00</TimeStamp>
+  </Source>
+  <Destination>
+    <OrgType>REP</OrgType>
+  </Destination>
+  <MessageNo>0</MessageNo>
+  <Insurer>
+    <UnderwriterName>Insurance Australia Limited</UnderwriterName>
+    <InsurerDetail FieldName="Underwriter">Insurance Australia </InsurerDetail>
+    <InsurerDetail FieldName="RIA">For WorkList Divisio</InsurerDetail>
+    <InsurerDetail FieldName="Trading As">NRMA Insurance</InsurerDetail>
+    <InsurerDetail FieldName="ABN">11000016722</InsurerDetail>
+    <InsurerDetail FieldName="AFS Lic">227681</InsurerDetail>
+  </Insurer>
+  <Repairer>
+    <RepairerID>U4073</RepairerID>
+    <RepairerName>SKY Smash Repair</RepairerName>
+    <RepairerDetails FieldName="ABN">18067301066</RepairerDetails>
+  </Repairer>
+  <ClaimHeader>
+    <VehicleID>1080637</VehicleID>
+    <InsuranceClaimNo>{{INSURANCE_CLAIM_NO}}</InsuranceClaimNo>
+    <ReinstatementNo>1</ReinstatementNo>
+  </ClaimHeader>
+  <RequestDetails>
+    <RequestType>CP</RequestType>
+    <RequestDate>2026-04-07+10:00</RequestDate>
+    <ContractText>Work completed under our authority will be performed under the terms of our agreement with you unless we advise otherwise.</ContractText>
+    <IncidentDateTime>2026-03-28T14:45:00+11:00</IncidentDateTime>
+    <IncidentDescription>My son was returning home from dropping his brother somewhere.  At the junction of Morteton Bay and Mt Cotton Road my son went to move forwards as the car in front appeared to be entering the intersection.  The car in front stoppped/changed his mind and my son hit him in rear.</IncidentDescription>
+    <DamagedAreas>
+      <DamagedArea>2</DamagedArea>
+    </DamagedAreas>
+    <ClaimantType>
+      <Insured />
+    </ClaimantType>
+    <PolicyType>MARKET</PolicyType>
+    <SumInsured>0</SumInsured>
+    <ClaimThreshold>2500.00</ClaimThreshold>
+    <ExcessToCollect>200.00</ExcessToCollect>
+    <EstimatedQuoteDate>2026-04-07+10:00</EstimatedQuoteDate>
+    <ClaimStatus>Current</ClaimStatus>
+  </RequestDetails>
+  <Vehicle>
+    <RegistrationNo>{{REGISTRATION_NO}}</RegistrationNo>
+    <BuildDate>201001</BuildDate>
+    <Make>Ford</Make>
+    <ModelID>Capri</ModelID>
+  </Vehicle>
+  <Customer>
+    <PersonalName>
+      <Title>Mr</Title>
+      <Forname>Sanjay</Forname>
+      <Surname>Yadav</Surname>
+    </PersonalName>
+    <MobilePhone>040317386</MobilePhone>
+  </Customer>
+</QML_RequestForQuote>

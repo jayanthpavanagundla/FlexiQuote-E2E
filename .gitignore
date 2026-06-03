@@ -1,0 +1,9 @@
+node_modules/
+.env.*
+!.env.*.example
+.auth/
+test-results/
+playwright-report/
+playwright/.cache/
+allure-results
+claude.md
