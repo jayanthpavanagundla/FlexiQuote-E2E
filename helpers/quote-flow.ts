@@ -1,8 +1,8 @@
-import { Page, expect } from '@playwright/test';
-import { NavBarPage } from '../pages/NavBarPage.js';
-import { QuotePage } from '../pages/Quote/QuotePage.js';
-import { QuoteNavBar } from '../pages/Quote/QuoteNavBar.js';
-import { buildQuoteData } from './quoteData.js';
+import { Page, expect } from "@playwright/test";
+import { NavBarPage } from "../pages/NavBarPage.js";
+import { QuotePage } from "../pages/Quote/QuotePage.js";
+import { QuoteNavBar } from "../pages/Quote/QuoteNavBar.js";
+import { buildQuoteData } from "./quoteData.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,7 +19,7 @@ export interface CreateQuoteResult {
 
 export async function createQuoteFlow(
   page: Page,
-  options?: CreateQuoteOptions
+  options?: CreateQuoteOptions,
 ): Promise<CreateQuoteResult> {
   const quoteData = buildQuoteData();
   const navBarPage = new NavBarPage(page);
@@ -27,7 +27,7 @@ export async function createQuoteFlow(
   const quoteNavBar = new QuoteNavBar(page);
 
   // Navigate
-  await page.goto('v2/');
+  await page.goto("v2/");
   await navBarPage.openQuoteDropdown();
   await navBarPage.selectRepairerQuote();
   await quotePage.createNewQuote();
@@ -66,24 +66,27 @@ export async function createQuoteFlow(
 // ─── Quote List Helpers ───────────────────────────────────────────────────────
 
 export async function navigateToRepairerQuotes(page: Page): Promise<void> {
-  const nav = page.locator('#main-nav-menu');
-  await nav.getByText('Quote', { exact: true }).hover();
-  await nav.getByText('Repairer Quote').click();
+  const nav = page.locator("#main-nav-menu");
+  await nav.getByText("Quote", { exact: true }).hover();
+  await nav.getByText("Repairer Quote").click();
 
   await expect(page).toHaveURL(/\/v2\/quotes$/);
-  await expect(page.getByRole('heading', { name: 'Quotes' })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quotes" })).toBeVisible();
 }
 
 export async function openRandomQuote(page: Page): Promise<string> {
-  const quoteNumberLinks = page.getByRole('link', { name: /^\d+$/ });
+  const quoteNumberLinks = page.getByRole("link", { name: /^\d+$/ });
   await expect(quoteNumberLinks.first()).toBeVisible();
 
-  const allNumbers = (await quoteNumberLinks.allInnerTexts()).map((t) => t.trim());
+  const allNumbers = (await quoteNumberLinks.allInnerTexts()).map((t) =>
+    t.trim(),
+  );
   const uniqueNumbers = [...new Set(allNumbers)];
   expect(uniqueNumbers.length).toBeGreaterThan(0);
 
-  const randomQuoteNumber = uniqueNumbers[Math.floor(Math.random() * uniqueNumbers.length)];
-  await page.getByRole('link', { name: randomQuoteNumber }).first().click();
+  const randomQuoteNumber =
+    uniqueNumbers[Math.floor(Math.random() * uniqueNumbers.length)];
+  await page.getByRole("link", { name: randomQuoteNumber }).first().click();
 
   return randomQuoteNumber;
 }
