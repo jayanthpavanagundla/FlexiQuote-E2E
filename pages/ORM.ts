@@ -865,55 +865,6 @@ export class ORM extends BasePage {
     });
   }
 
-  //   async clickLoadMessageButton(
-  //     expectedH1?: string,
-  //     expectedQuoteStatus?: string,
-  //   ): Promise<void> {
-  //     if (expectedH1) {
-  //       await step(
-  //         "Click Load Message, verify preview tab, close it, click Yes, switch to new tab, and verify quote status",
-  //         async () => {
-  //           const oldPage = this.page;
-
-  //           const [previewTab] = await Promise.all([
-  //             oldPage.context().waitForEvent("page"),
-  //             this.loadMessageButton.click(),
-  //           ]);
-
-  //           await previewTab.waitForLoadState("domcontentloaded");
-  //           await expect(
-  //             previewTab.getByRole("heading", { name: expectedH1 }),
-  //           ).toBeVisible();
-  //           await previewTab.close();
-
-  //           const [newTab] = await Promise.all([
-  //             oldPage.context().waitForEvent("page"),
-  //             this.yesButton.click(),
-  //           ]);
-
-  //           await newTab.waitForLoadState("domcontentloaded");
-
-  //           // Switch current ORM page object to new tab
-  //           this.page = newTab;
-  //           this.rebindLocators();
-
-  //           // Close old page after rebinding
-  //           await oldPage.close();
-
-  //           // Navigate to ORM tab and verify quote status
-  //           if (expectedQuoteStatus) {
-  //             await this.openORMTab();
-  //             await this.validateQuoteStatus(expectedQuoteStatus);
-  //           }
-  //         },
-  //       );
-  //     } else {
-  //       await step("Click Load Message button", async () => {
-  //         await this.loadMessageButton.click();
-  //       });
-  //     }
-  //   }
-
   async clickLoadMessageButton(
     expectedH1?: string,
     expectedQuoteStatus?: string,
@@ -944,12 +895,8 @@ export class ORM extends BasePage {
 
           await newTab.waitForLoadState("domcontentloaded");
 
-          // Switch ORM page object to the newly opened quote page
           this.page = newTab;
           this.rebindLocators();
-
-          // Do not close oldPage here if other page objects are still using it
-          // await oldPage.close();
 
           if (expectedQuoteStatus) {
             await this.openORMTab();
@@ -1353,6 +1300,124 @@ export class ORM extends BasePage {
 
         this.modifiedXml = result.xml;
 
+        return result;
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Addition of Extra Quote Item By Insurer
+  // ─────────────────────────────────────────────
+  modifyQMLQuoteWithExtraItem(xml: string): {
+    xml: string;
+    extraPartValue: number;
+    allPartValues: number[];
+    grandTotalExTax: number;
+    taxAmount: number;
+    grandTotalIncTax: number;
+  } {
+    let updatedXml = xml;
+
+    updatedXml = this.incrementMessageNo(updatedXml);
+
+    // The app totals from QuoteItemValue (not PartValue), so collect those
+    const existingQuoteItemValues = [
+      ...updatedXml.matchAll(/<QuoteItemValue>([\d.]+)<\/QuoteItemValue>/g),
+    ].map((m) => Number(m[1]));
+
+    // Determine the next sequential ItemNo
+    const itemNos = [...updatedXml.matchAll(/<ItemNo>(\d+)<\/ItemNo>/g)].map(
+      (m) => Number(m[1]),
+    );
+    const nextItemNo = itemNos.length > 0 ? Math.max(...itemNos) + 1 : 1;
+
+    // Generate a random value with 2 decimal places (e.g. 44.02)
+    const extraPartValue =
+      Math.round(
+        (this.generateRandomPartValue(10, 70) +
+          Math.random() +
+          Number.EPSILON) *
+          100,
+      ) / 100;
+
+    const newQuoteItem = `    <QuoteItem>
+      <ItemNo>${nextItemNo}</ItemNo>
+      <Code>NOCODE</Code>
+      <Description>Extra Part</Description>
+      <QuoteItemValue>${extraPartValue.toFixed(2)}</QuoteItemValue>
+      <Part>
+        <PartValue>${extraPartValue.toFixed(2)}</PartValue>
+        <PartQuantity>1</PartQuantity>
+        <PartOrientation>Other</PartOrientation>
+        <PartSource>
+          <OEM PartNumber="Not Available" />
+        </PartSource>
+      </Part>
+      <UpdateStatus>ACCEPTED</UpdateStatus>
+    </QuoteItem>`;
+
+    updatedXml = updatedXml.replace(
+      "</QuoteItems>",
+      `${newQuoteItem}\n    </QuoteItems>`,
+    );
+
+    // Mark all items (existing + new) as ACCEPTED
+    updatedXml = updatedXml.replace(
+      /<UpdateStatus>[\s\S]*?<\/UpdateStatus>/g,
+      "<UpdateStatus>ACCEPTED</UpdateStatus>",
+    );
+
+    // Sum all QuoteItemValues (existing + new extra) — this matches what the app displays
+    const allPartValues = [...existingQuoteItemValues, extraPartValue];
+    const grandTotalExTax = this.roundToTwo(allPartValues.reduce((sum, v) => sum + v, 0));
+    const taxAmount = this.roundToTwo(grandTotalExTax * 0.1);
+    const grandTotalIncTax = this.roundToTwo(grandTotalExTax + taxAmount);
+
+    updatedXml = this.replaceXmlTagValue(
+      updatedXml,
+      "GrandTotalExTax",
+      this.formatXmlAmount(grandTotalExTax),
+    );
+    updatedXml = this.replaceXmlTagValue(
+      updatedXml,
+      "TaxAmount",
+      this.formatXmlAmount(taxAmount),
+    );
+    updatedXml = this.replaceXmlTagValue(
+      updatedXml,
+      "GrandTotalIncTax",
+      this.formatXmlAmount(grandTotalIncTax),
+      false,
+    );
+
+    return {
+      xml: updatedXml,
+      extraPartValue,
+      allPartValues,
+      grandTotalExTax,
+      taxAmount,
+      grandTotalIncTax,
+    };
+  }
+
+  async getAndModifyQMLQuoteWithExtraItem(): Promise<{
+    xml: string;
+    extraPartValue: number;
+    allPartValues: number[];
+    grandTotalExTax: number;
+    taxAmount: number;
+    grandTotalIncTax: number;
+  }> {
+    return await step(
+      "Read copied XML, append an extra QuoteItem, and update totals",
+      async () => {
+        const xmlContent = await this.getXmlContent();
+
+        this.extractedMessageNo = this.extractMessageNo(xmlContent);
+        this.incrementedMessageNo = String(Number(this.extractedMessageNo) + 1);
+
+        const result = this.modifyQMLQuoteWithExtraItem(xmlContent);
+        this.modifiedXml = result.xml;
         return result;
       },
     );
