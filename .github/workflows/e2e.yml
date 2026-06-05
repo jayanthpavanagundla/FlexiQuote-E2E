@@ -1,0 +1,209 @@
+name: FlexiQuote E2E
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Test environment"
+        required: false
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+# Allow writing to gh-pages branch and reading repo contents
+permissions:
+  contents: write
+
+jobs:
+  e2e:
+    name: Run E2E Tests & Publish Allure Report
+    runs-on: ubuntu-latest
+    env:
+      RUN_ENV: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      # ─────────────────────────────────────────────────────────────────
+      # Setup
+      # ─────────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (Chromium only)
+        run: npx playwright install --with-deps chromium
+
+      # ─────────────────────────────────────────────────────────────────
+      # Credentials — write .env.<environment> from repository secrets
+      # BASE_URL differs per environment; all other credentials are shared.
+      # Each secret is injected as an env var first to avoid shell
+      # injection from special characters in values.
+      # ─────────────────────────────────────────────────────────────────
+      - name: Write .env.${{ env.RUN_ENV }} from secrets (staging)
+        if: env.RUN_ENV != 'production'
+        env:
+          BASE_URL: ${{ secrets.BASE_URL_STAGING }}
+          CSR_USERNAME: ${{ secrets.CSR_USERNAME }}
+          CSR_PASSWORD: ${{ secrets.CSR_PASSWORD }}
+          FQ_USERNAME: ${{ secrets.FQ_USERNAME }}
+          FQ_PASSWORD: ${{ secrets.FQ_PASSWORD }}
+          FQ_COMPANY_ID: ${{ secrets.FQ_COMPANY_ID }}
+          FQ_ADMIN_USERNAME: ${{ secrets.FQ_ADMIN_USERNAME }}
+          FQ_ADMIN_PASSWORD: ${{ secrets.FQ_ADMIN_PASSWORD }}
+          FQ_ADMIN_COMPANY_ID: ${{ secrets.FQ_ADMIN_COMPANY_ID }}
+          SUPER_ADMIN_USERNAME: ${{ secrets.SUPER_ADMIN_USERNAME }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          SUPER_ADMIN_COMPANY_ID: ${{ secrets.SUPER_ADMIN_COMPANY_ID }}
+        run: |
+          {
+            echo "BASE_URL=$BASE_URL"
+            echo "CSR_USERNAME=$CSR_USERNAME"
+            echo "CSR_PASSWORD=$CSR_PASSWORD"
+            echo "FQ_USERNAME=$FQ_USERNAME"
+            echo "FQ_PASSWORD=$FQ_PASSWORD"
+            echo "FQ_COMPANY_ID=$FQ_COMPANY_ID"
+            echo "FQ_ADMIN_USERNAME=$FQ_ADMIN_USERNAME"
+            echo "FQ_ADMIN_PASSWORD=$FQ_ADMIN_PASSWORD"
+            echo "FQ_ADMIN_COMPANY_ID=$FQ_ADMIN_COMPANY_ID"
+            echo "SUPER_ADMIN_USERNAME=$SUPER_ADMIN_USERNAME"
+            echo "SUPER_ADMIN_PASSWORD=$SUPER_ADMIN_PASSWORD"
+            echo "SUPER_ADMIN_COMPANY_ID=$SUPER_ADMIN_COMPANY_ID"
+          } > .env.${{ env.RUN_ENV }}
+
+      - name: Write .env.${{ env.RUN_ENV }} from secrets (production)
+        if: env.RUN_ENV == 'production'
+        env:
+          BASE_URL: ${{ secrets.BASE_URL_PROD }}
+          CSR_USERNAME: ${{ secrets.CSR_USERNAME }}
+          CSR_PASSWORD: ${{ secrets.CSR_PASSWORD }}
+          FQ_USERNAME: ${{ secrets.FQ_USERNAME }}
+          FQ_PASSWORD: ${{ secrets.FQ_PASSWORD }}
+          FQ_COMPANY_ID: ${{ secrets.FQ_COMPANY_ID }}
+          FQ_ADMIN_USERNAME: ${{ secrets.FQ_ADMIN_USERNAME }}
+          FQ_ADMIN_PASSWORD: ${{ secrets.FQ_ADMIN_PASSWORD }}
+          FQ_ADMIN_COMPANY_ID: ${{ secrets.FQ_ADMIN_COMPANY_ID }}
+          SUPER_ADMIN_USERNAME: ${{ secrets.SUPER_ADMIN_USERNAME }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          SUPER_ADMIN_COMPANY_ID: ${{ secrets.SUPER_ADMIN_COMPANY_ID }}
+        run: |
+          {
+            echo "BASE_URL=$BASE_URL"
+            echo "CSR_USERNAME=$CSR_USERNAME"
+            echo "CSR_PASSWORD=$CSR_PASSWORD"
+            echo "FQ_USERNAME=$FQ_USERNAME"
+            echo "FQ_PASSWORD=$FQ_PASSWORD"
+            echo "FQ_COMPANY_ID=$FQ_COMPANY_ID"
+            echo "FQ_ADMIN_USERNAME=$FQ_ADMIN_USERNAME"
+            echo "FQ_ADMIN_PASSWORD=$FQ_ADMIN_PASSWORD"
+            echo "FQ_ADMIN_COMPANY_ID=$FQ_ADMIN_COMPANY_ID"
+            echo "SUPER_ADMIN_USERNAME=$SUPER_ADMIN_USERNAME"
+            echo "SUPER_ADMIN_PASSWORD=$SUPER_ADMIN_PASSWORD"
+            echo "SUPER_ADMIN_COMPANY_ID=$SUPER_ADMIN_COMPANY_ID"
+          } > .env.${{ env.RUN_ENV }}
+
+      # ─────────────────────────────────────────────────────────────────
+      # Allure History — restore from gh-pages so trend charts persist
+      # ─────────────────────────────────────────────────────────────────
+      - name: Restore previous Allure history from gh-pages
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: .gh-pages
+
+      - name: Copy Allure history into results directory
+        continue-on-error: true
+        run: |
+          mkdir -p allure-results
+          if [ -d ".gh-pages/history" ]; then
+            cp -r .gh-pages/history allure-results/history
+            echo "Allure history restored (trend data preserved)"
+          else
+            echo "No previous Allure history found — first run"
+          fi
+
+      # ─────────────────────────────────────────────────────────────────
+      # Tests
+      # ─────────────────────────────────────────────────────────────────
+      - name: Run E2E tests (${{ env.RUN_ENV }})
+        run: npm run test:${{ env.RUN_ENV }}
+        continue-on-error: true # always reach the report step
+
+      # ─────────────────────────────────────────────────────────────────
+      # Allure Report — generate & deploy
+      # ─────────────────────────────────────────────────────────────────
+      - name: Write Allure executor info
+        if: always()
+        run: |
+          mkdir -p allure-results
+          cat > allure-results/executor.json << 'EOF'
+          {
+            "name": "GitHub Actions",
+            "type": "github",
+            "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "buildOrder": ${{ github.run_number }},
+            "buildName": "Run #${{ github.run_number }}",
+            "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "reportName": "FlexiQuote E2E",
+            "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          }
+          EOF
+
+      - name: Install Allure CLI
+        if: always()
+        run: npm install -g allure-commandline
+
+      - name: Generate Allure HTML report
+        if: always()
+        run: allure generate allure-results --clean -o allure-report
+
+      - name: Deploy Allure report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-report
+          keep_files: false
+          commit_message: "ci: Allure report — run #${{ github.run_number }} [${{ github.ref_name }}]"
+
+      # ─────────────────────────────────────────────────────────────────
+      # Summary — link to the live report in the Actions run page
+      # ─────────────────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## FlexiQuote E2E — Run #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ env.RUN_ENV }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **[View Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/)**" >> $GITHUB_STEP_SUMMARY
+
+      # ─────────────────────────────────────────────────────────────────
+      # Artifacts — upload traces / videos for failed runs
+      # ─────────────────────────────────────────────────────────────────
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-run-${{ github.run_number }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
