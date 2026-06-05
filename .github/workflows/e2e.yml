@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Test environment'
+        description: "Test environment"
         required: false
         default: staging
         type: choice
@@ -22,6 +22,8 @@ jobs:
   e2e:
     name: Run E2E Tests & Publish Allure Report
     runs-on: ubuntu-latest
+    env:
+      RUN_ENV: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:
       # ─────────────────────────────────────────────────────────────────
@@ -33,7 +35,7 @@ jobs:
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
           cache: npm
 
       - name: Install project dependencies
@@ -48,26 +50,51 @@ jobs:
       # Each secret is injected as an env var first to avoid shell
       # injection from special characters in values.
       # ─────────────────────────────────────────────────────────────────
-      - name: Resolve environment variables
-        run: |
-          echo "RUN_ENV=${{ github.event.inputs.environment || 'staging' }}" >> $GITHUB_ENV
-
-      - name: Write .env.${{ env.RUN_ENV }} from secrets
+      - name: Write .env.${{ env.RUN_ENV }} from secrets (staging)
+        if: env.RUN_ENV != 'production'
         env:
-          BASE_URL: >-
-            ${{ env.RUN_ENV == 'production'
-                && secrets.BASE_URL_PROD
-                || secrets.BASE_URL_STAGING }}
-          CSR_USERNAME:           ${{ secrets.CSR_USERNAME }}
-          CSR_PASSWORD:           ${{ secrets.CSR_PASSWORD }}
-          FQ_USERNAME:            ${{ secrets.FQ_USERNAME }}
-          FQ_PASSWORD:            ${{ secrets.FQ_PASSWORD }}
-          FQ_COMPANY_ID:          ${{ secrets.FQ_COMPANY_ID }}
-          FQ_ADMIN_USERNAME:      ${{ secrets.FQ_ADMIN_USERNAME }}
-          FQ_ADMIN_PASSWORD:      ${{ secrets.FQ_ADMIN_PASSWORD }}
-          FQ_ADMIN_COMPANY_ID:    ${{ secrets.FQ_ADMIN_COMPANY_ID }}
-          SUPER_ADMIN_USERNAME:   ${{ secrets.SUPER_ADMIN_USERNAME }}
-          SUPER_ADMIN_PASSWORD:   ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          BASE_URL: ${{ secrets.BASE_URL_STAGING }}
+          CSR_USERNAME: ${{ secrets.CSR_USERNAME }}
+          CSR_PASSWORD: ${{ secrets.CSR_PASSWORD }}
+          FQ_USERNAME: ${{ secrets.FQ_USERNAME }}
+          FQ_PASSWORD: ${{ secrets.FQ_PASSWORD }}
+          FQ_COMPANY_ID: ${{ secrets.FQ_COMPANY_ID }}
+          FQ_ADMIN_USERNAME: ${{ secrets.FQ_ADMIN_USERNAME }}
+          FQ_ADMIN_PASSWORD: ${{ secrets.FQ_ADMIN_PASSWORD }}
+          FQ_ADMIN_COMPANY_ID: ${{ secrets.FQ_ADMIN_COMPANY_ID }}
+          SUPER_ADMIN_USERNAME: ${{ secrets.SUPER_ADMIN_USERNAME }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          SUPER_ADMIN_COMPANY_ID: ${{ secrets.SUPER_ADMIN_COMPANY_ID }}
+        run: |
+          {
+            echo "BASE_URL=$BASE_URL"
+            echo "CSR_USERNAME=$CSR_USERNAME"
+            echo "CSR_PASSWORD=$CSR_PASSWORD"
+            echo "FQ_USERNAME=$FQ_USERNAME"
+            echo "FQ_PASSWORD=$FQ_PASSWORD"
+            echo "FQ_COMPANY_ID=$FQ_COMPANY_ID"
+            echo "FQ_ADMIN_USERNAME=$FQ_ADMIN_USERNAME"
+            echo "FQ_ADMIN_PASSWORD=$FQ_ADMIN_PASSWORD"
+            echo "FQ_ADMIN_COMPANY_ID=$FQ_ADMIN_COMPANY_ID"
+            echo "SUPER_ADMIN_USERNAME=$SUPER_ADMIN_USERNAME"
+            echo "SUPER_ADMIN_PASSWORD=$SUPER_ADMIN_PASSWORD"
+            echo "SUPER_ADMIN_COMPANY_ID=$SUPER_ADMIN_COMPANY_ID"
+          } > .env.${{ env.RUN_ENV }}
+
+      - name: Write .env.${{ env.RUN_ENV }} from secrets (production)
+        if: env.RUN_ENV == 'production'
+        env:
+          BASE_URL: ${{ secrets.BASE_URL_PROD }}
+          CSR_USERNAME: ${{ secrets.CSR_USERNAME }}
+          CSR_PASSWORD: ${{ secrets.CSR_PASSWORD }}
+          FQ_USERNAME: ${{ secrets.FQ_USERNAME }}
+          FQ_PASSWORD: ${{ secrets.FQ_PASSWORD }}
+          FQ_COMPANY_ID: ${{ secrets.FQ_COMPANY_ID }}
+          FQ_ADMIN_USERNAME: ${{ secrets.FQ_ADMIN_USERNAME }}
+          FQ_ADMIN_PASSWORD: ${{ secrets.FQ_ADMIN_PASSWORD }}
+          FQ_ADMIN_COMPANY_ID: ${{ secrets.FQ_ADMIN_COMPANY_ID }}
+          SUPER_ADMIN_USERNAME: ${{ secrets.SUPER_ADMIN_USERNAME }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
           SUPER_ADMIN_COMPANY_ID: ${{ secrets.SUPER_ADMIN_COMPANY_ID }}
         run: |
           {
@@ -111,7 +138,7 @@ jobs:
       # ─────────────────────────────────────────────────────────────────
       - name: Run E2E tests (${{ env.RUN_ENV }})
         run: npm run test:${{ env.RUN_ENV }}
-        continue-on-error: true   # always reach the report step
+        continue-on-error: true # always reach the report step
 
       # ─────────────────────────────────────────────────────────────────
       # Allure Report — generate & deploy
@@ -149,7 +176,7 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-report
           keep_files: false
-          commit_message: 'ci: Allure report — run #${{ github.run_number }} [${{ github.ref_name }}]'
+          commit_message: "ci: Allure report — run #${{ github.run_number }} [${{ github.ref_name }}]"
 
       # ─────────────────────────────────────────────────────────────────
       # Summary — link to the live report in the Actions run page
