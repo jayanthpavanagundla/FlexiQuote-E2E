@@ -1,1 +1,1 @@
-{"reportName":"FlexiQuote E2E","testRuns":[],"statistic":{"failed":0,"broken":0,"skipped":0,"passed":0,"unknown":0,"total":0},"time":{}}
+{"reportName":"FlexiQuote E2E","testRuns":[],"statistic":{"failed":1,"broken":0,"skipped":69,"passed":0,"unknown":0,"total":70},"time":{"start":1780632087753,"stop":1780632087814,"duration":61,"minDuration":0,"maxDuration":1,"sumDuration":6}}
