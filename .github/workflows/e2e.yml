@@ -1,6 +1,7 @@
 name: FlexiQuote E2E
 
 on:
+  # To Pause the Auto WorkFlow, Comment push, branches Lines
   push:
     branches: [main]
   workflow_dispatch:

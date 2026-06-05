@@ -4,19 +4,36 @@ import dotenv from "dotenv";
 const env = process.env.ENV ?? "staging";
 dotenv.config({ path: `.env.${env}` });
 
+// Detect which --project values were passed on the CLI
+const requestedProjects: string[] = [];
+for (let i = 0; i < process.argv.length; i++) {
+  if (process.argv[i] === "--project" && i + 1 < process.argv.length) {
+    requestedProjects.push(process.argv[i + 1]);
+  } else if (process.argv[i].startsWith("--project=")) {
+    requestedProjects.push(process.argv[i].slice("--project=".length));
+  }
+}
+const csrOnly =
+  requestedProjects.length > 0 &&
+  requestedProjects.every((p) => p === "flexiquote-csr" || p === "csr-setup");
+
 const required = [
   "BASE_URL",
   "CSR_USERNAME",
   "CSR_PASSWORD",
-  "FQ_USERNAME",
-  "FQ_PASSWORD",
-  "FQ_COMPANY_ID",
-  "FQ_ADMIN_USERNAME",
-  "FQ_ADMIN_PASSWORD",
-  "FQ_ADMIN_COMPANY_ID",
-  "SUPER_ADMIN_USERNAME",
-  "SUPER_ADMIN_PASSWORD",
-  "SUPER_ADMIN_COMPANY_ID",
+  ...(csrOnly
+    ? []
+    : [
+        "FQ_USERNAME",
+        "FQ_PASSWORD",
+        "FQ_COMPANY_ID",
+        "FQ_ADMIN_USERNAME",
+        "FQ_ADMIN_PASSWORD",
+        "FQ_ADMIN_COMPANY_ID",
+        "SUPER_ADMIN_USERNAME",
+        "SUPER_ADMIN_PASSWORD",
+        "SUPER_ADMIN_COMPANY_ID",
+      ]),
 ];
 const missing = required.filter((k) => !process.env[k]);
 if (missing.length) {
