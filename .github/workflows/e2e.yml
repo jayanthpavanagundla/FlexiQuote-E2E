@@ -2,8 +2,8 @@ name: FlexiQuote E2E
 
 on:
   # To Pause the Auto WorkFlow, Comment push, branches Lines
-  push:
-    branches: [main]
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 # Allow writing to gh-pages branch and reading repo contents
@@ -139,6 +139,22 @@ jobs:
       - name: Generate Allure HTML report
         if: always()
         run: allure generate allure-results --clean -o allure-report
+
+      - name: Remove large Allure attachments before Pages deploy
+        if: always()
+        run: |
+          echo "Largest files before cleanup:"
+          du -ah allure-report | sort -rh | head -30 || true
+
+          # Remove Playwright traces and videos from the public Pages report
+          find allure-report/data/attachments -type f \( -name "*.zip" -o -name "*.webm" \) -delete || true
+
+          # Remove embedded Playwright trace viewer if present
+          rm -rf allure-report/playwright-trace-viewer || true
+          rm -f allure-report/data/playwright-trace-viewer.json || true
+
+          echo "Report size after cleanup:"
+          du -sh allure-report
 
       - name: Deploy Allure report to GitHub Pages
         if: always()
