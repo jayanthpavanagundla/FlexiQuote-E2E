@@ -35,17 +35,29 @@ test.describe("ORM Integration", () => {
     await subNavBarPage.clickNewButton();
 
     const { insuranceClaimNo, registrationNo } = await ormMsgPage.pasteRfqXml();
-    // Verify the XML was injected into the CodeMirror editor
-    const editorValue: string = await page.evaluate(() => {
-      const cmInstance = (document.querySelector(".CodeMirror") as any)
-        .CodeMirror;
-      return cmInstance.getValue();
+    let editorValue: string = "";
+    await step("Read current XML content from CodeMirror editor", async () => {
+      editorValue = await page.evaluate(() => {
+        const cmInstance = (document.querySelector(".CodeMirror") as any)
+          .CodeMirror;
+        return cmInstance.getValue();
+      });
     });
-    expect(editorValue).toContain(
-      `<InsuranceClaimNo>${insuranceClaimNo}</InsuranceClaimNo>`,
+    await step(
+      `Verify XML editor contains InsuranceClaimNo: ${insuranceClaimNo}`,
+      async () => {
+        expect(editorValue).toContain(
+          `<InsuranceClaimNo>${insuranceClaimNo}</InsuranceClaimNo>`,
+        );
+      },
     );
-    expect(editorValue).toContain(
-      `<RegistrationNo>${registrationNo}</RegistrationNo>`,
+    await step(
+      `Verify XML editor contains RegistrationNo: ${registrationNo}`,
+      async () => {
+        expect(editorValue).toContain(
+          `<RegistrationNo>${registrationNo}</RegistrationNo>`,
+        );
+      },
     );
 
     await ormMsgPage.clickUidInput("PJ");
@@ -293,7 +305,9 @@ test.describe("ORM Integration", () => {
 
     // The UI total should have increased by exactly the extra item's value
     const expectedExGst =
-      Math.round((preLoadExGst + totals.extraPartValue + Number.EPSILON) * 100) / 100;
+      Math.round(
+        (preLoadExGst + totals.extraPartValue + Number.EPSILON) * 100,
+      ) / 100;
     const expectedIncGst =
       Math.round((expectedExGst * 1.1 + Number.EPSILON) * 100) / 100;
 
@@ -311,52 +325,52 @@ test.describe("ORM Integration", () => {
     );
   });
 
-  // test("Submit Tax Invoice", async ({ page }) => {
-  //   await navBarPage.openQuoteDropdown();
-  //   await navBarPage.selectRepairerQuote();
-  //   await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
-  //   await ormMsgPage.openInvoiceTab();
-  //   await ormMsgPage.handleInvoiceFlow(generatedQuoteNumber, subNavBarPage);
-  //   await ormMsgPage.openORMTab();
-  //   await ormMsgPage.openORMDropdown();
-  //   await ormMsgPage.clickTaxInvoice();
-  //   await ormMsgPage.clickSendTaxInvoice();
-  //   await subNavBarPage.expectToast(`Tax invoice is being submitted`);
-  //   // Validations
-  //   await page.reload({ waitUntil: "domcontentloaded" });
-  //   await page.waitForLoadState("networkidle").catch(() => {});
-  //   await ormMsgPage.waitForQuoteEditingLocked();
-  //   await ormMsgPage.openORMTab();
-  //   await ormMsgPage.validateQuoteStatus("Quote Invoice Submitted");
-  //   await ormMsgPage.openORMDropdown();
-  //   await ormMsgPage.verifySubmitTaxInvoiceDisabled();
-  //   await ormMsgPage.openQuotingTab();
-  //   await ormMsgPage.verifyQuotingNavButtonsDisabled();
-  // });
+  test("Submit Tax Invoice", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await ormMsgPage.openInvoiceTab();
+    await ormMsgPage.handleInvoiceFlow(generatedQuoteNumber, subNavBarPage);
+    await ormMsgPage.openORMTab();
+    await ormMsgPage.openORMDropdown();
+    await ormMsgPage.clickTaxInvoice();
+    await ormMsgPage.clickSendTaxInvoice();
+    await subNavBarPage.expectToast(`Tax invoice is being submitted`);
+    // Validations
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForLoadState("networkidle").catch(() => {});
+    await ormMsgPage.waitForQuoteEditingLocked();
+    await ormMsgPage.openORMTab();
+    await ormMsgPage.validateQuoteStatus("Quote Invoice Submitted");
+    await ormMsgPage.openORMDropdown();
+    await ormMsgPage.verifySubmitTaxInvoiceDisabled();
+    await ormMsgPage.openQuotingTab();
+    await ormMsgPage.verifyQuotingNavButtonsDisabled();
+  });
 
-  // test("Load Payment Authorisation", async ({ page }) => {
-  //   await navBarPage.openQuoteDropdown();
-  //   await navBarPage.selectRepairerQuote();
-  //   await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
-  //   await ormMsgPage.openORMTab();
-  //   await ormMsgPage.openORMDropdown();
-  //   await ormMsgPage.clickViewMessages();
-  //   await ormMsgPage.selectViewMsgFirstRow();
-  //   await ormMsgPage.getAndModifyQMLPaymentAuthorised();
-  //   await subNavBarPage.clickSaveButton();
-  //   await navBarPage.openQuoteDropdown();
-  //   await navBarPage.selectORMMessages();
-  //   await subNavBarPage.clickNewButton();
-  //   await ormMsgPage.clickUidInput("PJ");
-  //   await ormMsgPage.clickMessageNoInput(ormMsgPage.incrementedMessageNo);
-  //   await ormMsgPage.clickPaymentAuthorised();
-  //   await ormMsgPage.pasteModifiedQMLPaymentAuthorised();
-  //   await subNavBarPage.clickSaveButton();
-  //   await subNavBarPage.clickBackButton();
-  //   await navBarPage.openQuoteDropdown();
-  //   await navBarPage.selectRepairerQuote();
-  //   await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
-  //   await ormMsgPage.openORMTab();
-  //   await ormMsgPage.validateQuoteStatus("Payment Authorised");
-  // });
+  test("Load Payment Authorisation", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await ormMsgPage.openORMTab();
+    await ormMsgPage.openORMDropdown();
+    await ormMsgPage.clickViewMessages();
+    await ormMsgPage.selectViewMsgFirstRow();
+    await ormMsgPage.getAndModifyQMLPaymentAuthorised();
+    await subNavBarPage.clickSaveButton();
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectORMMessages();
+    await subNavBarPage.clickNewButton();
+    await ormMsgPage.clickUidInput("PJ");
+    await ormMsgPage.clickMessageNoInput(ormMsgPage.incrementedMessageNo);
+    await ormMsgPage.clickPaymentAuthorised();
+    await ormMsgPage.pasteModifiedQMLPaymentAuthorised();
+    await subNavBarPage.clickSaveButton();
+    await subNavBarPage.clickBackButton();
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await ormMsgPage.openORMTab();
+    await ormMsgPage.validateQuoteStatus("Payment Authorised");
+  });
 });

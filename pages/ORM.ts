@@ -204,24 +204,32 @@ export class ORM extends BasePage {
     insuranceClaimNo: string;
     registrationNo: string;
   }> {
-    const insuranceClaimNo = generateInsuranceClaimNo();
-    const registrationNo = generateRegistrationNo();
+    return await step("Paste RFQ XML into CodeMirror editor", async () => {
+      const insuranceClaimNo = generateInsuranceClaimNo();
+      const registrationNo = generateRegistrationNo();
 
-    const templatePath = path.resolve(__dirname, "../helpers/rfq-request.xml");
-    let xml = fs.readFileSync(templatePath, "utf-8");
-    xml = xml.replace("{{INSURANCE_CLAIM_NO}}", insuranceClaimNo);
-    xml = xml.replace("{{REGISTRATION_NO}}", registrationNo);
+      const templatePath = path.resolve(
+        __dirname,
+        "../helpers/rfq-request.xml",
+      );
+      let xml = fs.readFileSync(templatePath, "utf-8");
+      xml = xml.replace("{{INSURANCE_CLAIM_NO}}", insuranceClaimNo);
+      xml = xml.replace("{{REGISTRATION_NO}}", registrationNo);
 
-    const editor = this.page.locator(".CodeMirror");
-    await editor.click();
+      await step("Focus CodeMirror editor", async () => {
+        await this.page.locator(".CodeMirror").click();
+      });
 
-    await this.page.evaluate((xmlContent: string) => {
-      const cmInstance = (document.querySelector(".CodeMirror") as any)
-        .CodeMirror;
-      cmInstance.setValue(xmlContent);
-    }, xml);
+      await step("Inject RFQ XML content into CodeMirror", async () => {
+        await this.page.evaluate((xmlContent: string) => {
+          const cmInstance = (document.querySelector(".CodeMirror") as any)
+            .CodeMirror;
+          cmInstance.setValue(xmlContent);
+        }, xml);
+      });
 
-    return { insuranceClaimNo, registrationNo };
+      return { insuranceClaimNo, registrationNo };
+    });
   }
 
   // ─────────────────────────────────────────────
@@ -678,7 +686,9 @@ export class ORM extends BasePage {
   }
 
   async verifySubmitTaxInvoiceDisabled(): Promise<void> {
-    await expect(this.submitTaxInvoice).toHaveClass(/is-disabled/);
+    await step("Verify Submit Tax Invoice is disabled", async () => {
+      await expect(this.submitTaxInvoice).toHaveClass(/is-disabled/);
+    });
   }
 
   async clickSendTaxInvoice(): Promise<void> {
@@ -1204,15 +1214,6 @@ export class ORM extends BasePage {
     return xml.replace(regex, `<${tagName}>${value}</${tagName}>`);
   }
 
-  generateRandomPartValuesFromXml(xml: string): number[] {
-    const partValueMatches =
-      xml.match(/<PartValue>[\s\S]*?<\/PartValue>/g) || [];
-    if (partValueMatches.length === 0) {
-      throw new Error("No PartValue tags found in XML.");
-    }
-    return partValueMatches.map(() => this.generateRandomPartValue(10, 70));
-  }
-
   modifyQMLQuoteWithRandomChangedPartValues(xml: string): {
     xml: string;
     partValues: number[];
@@ -1224,16 +1225,23 @@ export class ORM extends BasePage {
 
     updatedXml = this.incrementMessageNo(updatedXml);
 
-    const randomPartValues = this.generateRandomPartValuesFromXml(updatedXml);
+    const randomPartValues: number[] = [];
 
-    let partValueIndex = 0;
+    // Update QuoteItemValue and PartValue together per QuoteItem (Quantity stays 1)
+    updatedXml = updatedXml.replace(/<QuoteItem>[\s\S]*?<\/QuoteItem>/g, (block) => {
+      const randomValue = this.generateRandomPartValue(10, 70);
+      randomPartValues.push(randomValue);
+      const formatted = this.formatXmlAmount(randomValue);
 
-    updatedXml = updatedXml.replace(/<PartValue>[\s\S]*?<\/PartValue>/g, () => {
-      const randomValue = randomPartValues[partValueIndex];
-      partValueIndex++;
-
-      return `<PartValue>${this.formatXmlAmount(randomValue)}</PartValue>`;
+      let updated = block;
+      updated = updated.replace(/<QuoteItemValue>[\s\S]*?<\/QuoteItemValue>/, `<QuoteItemValue>${formatted}</QuoteItemValue>`);
+      updated = updated.replace(/<PartValue>[\s\S]*?<\/PartValue>/, `<PartValue>${formatted}</PartValue>`);
+      return updated;
     });
+
+    if (randomPartValues.length === 0) {
+      throw new Error("No QuoteItem blocks found in XML.");
+    }
 
     updatedXml = updatedXml.replace(
       /<UpdateStatus>[\s\S]*?<\/UpdateStatus>/g,

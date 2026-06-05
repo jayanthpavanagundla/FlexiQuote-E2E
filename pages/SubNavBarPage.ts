@@ -61,7 +61,9 @@ export class SubNavBarPage extends BasePage {
     return toastMsg;
   }
   async expectToast(message: string): Promise<void> {
-    await expect(this.getToast(message)).toBeVisible();
+    await step(`Verify toast message: "${message}"`, async () => {
+      await expect(this.getToast(message)).toBeVisible();
+    });
   }
 
   // Method to open the preview
