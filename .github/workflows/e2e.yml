@@ -4,15 +4,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Test environment"
-        required: false
-        default: staging
-        type: choice
-        options:
-          - staging
-          - production
 
 # Allow writing to gh-pages branch and reading repo contents
 permissions:
@@ -22,8 +13,6 @@ jobs:
   e2e:
     name: Run E2E Tests & Publish Allure Report
     runs-on: ubuntu-latest
-    env:
-      RUN_ENV: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:
       # ─────────────────────────────────────────────────────────────────
@@ -45,72 +34,21 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # ─────────────────────────────────────────────────────────────────
-      # Credentials — write .env.<environment> from repository secrets
-      # BASE_URL differs per environment; all other credentials are shared.
+      # Credentials — write .env.staging from repository secrets
       # Each secret is injected as an env var first to avoid shell
       # injection from special characters in values.
       # ─────────────────────────────────────────────────────────────────
-      - name: Write .env.${{ env.RUN_ENV }} from secrets (staging)
-        if: env.RUN_ENV != 'production'
+      - name: Write .env.staging from secrets
         env:
           BASE_URL: ${{ secrets.BASE_URL_STAGING }}
           CSR_USERNAME: ${{ secrets.CSR_USERNAME }}
           CSR_PASSWORD: ${{ secrets.CSR_PASSWORD }}
-          FQ_USERNAME: ${{ secrets.FQ_USERNAME }}
-          FQ_PASSWORD: ${{ secrets.FQ_PASSWORD }}
-          FQ_COMPANY_ID: ${{ secrets.FQ_COMPANY_ID }}
-          FQ_ADMIN_USERNAME: ${{ secrets.FQ_ADMIN_USERNAME }}
-          FQ_ADMIN_PASSWORD: ${{ secrets.FQ_ADMIN_PASSWORD }}
-          FQ_ADMIN_COMPANY_ID: ${{ secrets.FQ_ADMIN_COMPANY_ID }}
-          SUPER_ADMIN_USERNAME: ${{ secrets.SUPER_ADMIN_USERNAME }}
-          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
-          SUPER_ADMIN_COMPANY_ID: ${{ secrets.SUPER_ADMIN_COMPANY_ID }}
         run: |
           {
             echo "BASE_URL=$BASE_URL"
             echo "CSR_USERNAME=$CSR_USERNAME"
             echo "CSR_PASSWORD=$CSR_PASSWORD"
-            echo "FQ_USERNAME=$FQ_USERNAME"
-            echo "FQ_PASSWORD=$FQ_PASSWORD"
-            echo "FQ_COMPANY_ID=$FQ_COMPANY_ID"
-            echo "FQ_ADMIN_USERNAME=$FQ_ADMIN_USERNAME"
-            echo "FQ_ADMIN_PASSWORD=$FQ_ADMIN_PASSWORD"
-            echo "FQ_ADMIN_COMPANY_ID=$FQ_ADMIN_COMPANY_ID"
-            echo "SUPER_ADMIN_USERNAME=$SUPER_ADMIN_USERNAME"
-            echo "SUPER_ADMIN_PASSWORD=$SUPER_ADMIN_PASSWORD"
-            echo "SUPER_ADMIN_COMPANY_ID=$SUPER_ADMIN_COMPANY_ID"
-          } > .env.${{ env.RUN_ENV }}
-
-      - name: Write .env.${{ env.RUN_ENV }} from secrets (production)
-        if: env.RUN_ENV == 'production'
-        env:
-          BASE_URL: ${{ secrets.BASE_URL_PROD }}
-          CSR_USERNAME: ${{ secrets.CSR_USERNAME }}
-          CSR_PASSWORD: ${{ secrets.CSR_PASSWORD }}
-          FQ_USERNAME: ${{ secrets.FQ_USERNAME }}
-          FQ_PASSWORD: ${{ secrets.FQ_PASSWORD }}
-          FQ_COMPANY_ID: ${{ secrets.FQ_COMPANY_ID }}
-          FQ_ADMIN_USERNAME: ${{ secrets.FQ_ADMIN_USERNAME }}
-          FQ_ADMIN_PASSWORD: ${{ secrets.FQ_ADMIN_PASSWORD }}
-          FQ_ADMIN_COMPANY_ID: ${{ secrets.FQ_ADMIN_COMPANY_ID }}
-          SUPER_ADMIN_USERNAME: ${{ secrets.SUPER_ADMIN_USERNAME }}
-          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
-          SUPER_ADMIN_COMPANY_ID: ${{ secrets.SUPER_ADMIN_COMPANY_ID }}
-        run: |
-          {
-            echo "BASE_URL=$BASE_URL"
-            echo "CSR_USERNAME=$CSR_USERNAME"
-            echo "CSR_PASSWORD=$CSR_PASSWORD"
-            echo "FQ_USERNAME=$FQ_USERNAME"
-            echo "FQ_PASSWORD=$FQ_PASSWORD"
-            echo "FQ_COMPANY_ID=$FQ_COMPANY_ID"
-            echo "FQ_ADMIN_USERNAME=$FQ_ADMIN_USERNAME"
-            echo "FQ_ADMIN_PASSWORD=$FQ_ADMIN_PASSWORD"
-            echo "FQ_ADMIN_COMPANY_ID=$FQ_ADMIN_COMPANY_ID"
-            echo "SUPER_ADMIN_USERNAME=$SUPER_ADMIN_USERNAME"
-            echo "SUPER_ADMIN_PASSWORD=$SUPER_ADMIN_PASSWORD"
-            echo "SUPER_ADMIN_COMPANY_ID=$SUPER_ADMIN_COMPANY_ID"
-          } > .env.${{ env.RUN_ENV }}
+          } > .env.staging
 
       # ─────────────────────────────────────────────────────────────────
       # Allure History — restore from gh-pages so trend charts persist
@@ -134,10 +72,10 @@ jobs:
           fi
 
       # ─────────────────────────────────────────────────────────────────
-      # Tests
+      # Tests — CSR project only
       # ─────────────────────────────────────────────────────────────────
-      - name: Run E2E tests (${{ env.RUN_ENV }})
-        run: npm run test:${{ env.RUN_ENV }}
+      - name: Run E2E tests (CSR — staging)
+        run: npm run test:staging -- --project=flexiquote-csr
         continue-on-error: true # always reach the report step
 
       # ─────────────────────────────────────────────────────────────────
@@ -147,7 +85,7 @@ jobs:
         if: always()
         run: |
           mkdir -p allure-results
-          cat > allure-results/executor.json << 'EOF'
+          cat > allure-results/executor.json << EOF
           {
             "name": "GitHub Actions",
             "type": "github",
@@ -159,6 +97,13 @@ jobs:
             "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           }
           EOF
+
+      - name: Setup Java (required by Allure CLI)
+        if: always()
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
 
       - name: Install Allure CLI
         if: always()
@@ -188,7 +133,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | \`${{ env.RUN_ENV }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`staging\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Project | \`flexiquote-csr\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
