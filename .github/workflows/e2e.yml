@@ -42,13 +42,39 @@ jobs:
       - name: Write .env.staging from secrets
         env:
           BASE_URL: ${{ secrets.BASE_URL_STAGING }}
+
           CSR_USERNAME: ${{ secrets.CSR_USERNAME }}
           CSR_PASSWORD: ${{ secrets.CSR_PASSWORD }}
+
+          FQ_USERNAME: ${{ secrets.FQ_USERNAME }}
+          FQ_PASSWORD: ${{ secrets.FQ_PASSWORD }}
+          FQ_COMPANY_ID: ${{ secrets.FQ_COMPANY_ID }}
+
+          FQ_ADMIN_USERNAME: ${{ secrets.FQ_ADMIN_USERNAME }}
+          FQ_ADMIN_PASSWORD: ${{ secrets.FQ_ADMIN_PASSWORD }}
+          FQ_ADMIN_COMPANY_ID: ${{ secrets.FQ_ADMIN_COMPANY_ID }}
+
+          SUPER_ADMIN_USERNAME: ${{ secrets.SUPER_ADMIN_USERNAME }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+          SUPER_ADMIN_COMPANY_ID: ${{ secrets.SUPER_ADMIN_COMPANY_ID }}
         run: |
           {
             echo "BASE_URL=$BASE_URL"
+
             echo "CSR_USERNAME=$CSR_USERNAME"
             echo "CSR_PASSWORD=$CSR_PASSWORD"
+
+            echo "FQ_USERNAME=$FQ_USERNAME"
+            echo "FQ_PASSWORD=$FQ_PASSWORD"
+            echo "FQ_COMPANY_ID=$FQ_COMPANY_ID"
+
+            echo "FQ_ADMIN_USERNAME=$FQ_ADMIN_USERNAME"
+            echo "FQ_ADMIN_PASSWORD=$FQ_ADMIN_PASSWORD"
+            echo "FQ_ADMIN_COMPANY_ID=$FQ_ADMIN_COMPANY_ID"
+
+            echo "SUPER_ADMIN_USERNAME=$SUPER_ADMIN_USERNAME"
+            echo "SUPER_ADMIN_PASSWORD=$SUPER_ADMIN_PASSWORD"
+            echo "SUPER_ADMIN_COMPANY_ID=$SUPER_ADMIN_COMPANY_ID"
           } > .env.staging
 
       # ─────────────────────────────────────────────────────────────────
