@@ -1,0 +1,5 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","63939","Super admin sign in","super-setup","2026-06-05","broken","2026-06-05","","auth-setup/auth.super.setup.ts","",""
+"","16020","Regular user sign in","user-setup","2026-06-05","passed","2026-06-05","","auth-setup/auth.user.setup.ts","",""
+"","16526","Repairer admin sign in","admin-setup","2026-06-05","passed","2026-06-05","","auth-setup/auth.admin.setup.ts","",""
+"","16903","CSR Sign In","csr-setup","2026-06-05","passed","2026-06-05","","auth-setup/auth.csr.setup.ts","",""
