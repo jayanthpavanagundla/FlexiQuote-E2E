@@ -12,7 +12,7 @@ test.describe("Listing Preview", () => {
   const SUBREPORT_ERROR = "Error: Subreport could not be shown";
 
   test.beforeEach(async ({ page }) => {
-    await epic("Listing Preview");
+    await epic("Specific Listing Preview");
 
     navBarPage = new NavBarPage(page);
     subNavBarPage = new SubNavBarPage(page);
@@ -23,7 +23,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Repairer Quote Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Quote Listing Preview");
 
     await navBarPage.openQuoteDropdown();
@@ -39,7 +38,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Misc Quote Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Quote Listing Preview");
 
     await navBarPage.openQuoteDropdown();
@@ -55,7 +53,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Quick Invoice Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Debtor Listing Preview");
 
     await navBarPage.openDebtorDropdown();
@@ -70,7 +67,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Debtor Adjustment Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Debtor Listing Preview");
 
     await navBarPage.openDebtorDropdown();
@@ -85,13 +81,12 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Receipt Entry Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Debtor Listing Preview");
 
     await navBarPage.openDebtorDropdown();
     await navBarPage.selectReceiptEntry();
     await subNavBarPage.openFirstRecordFromTable("/v2/receiptentry");
-    const newTab = await subNavBarPage.checkFirstRowCheckbox("Print Statement");
+    const newTab = await subNavBarPage.checkFirstRowCheckbox();
     await subNavBarPage.verifyPdfLoadedAndNoError(
       "AT_OfficialReceiptList",
       SUBREPORT_ERROR,
@@ -103,7 +98,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Sundry Creditor Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
@@ -118,7 +112,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Payment Entry Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
@@ -137,12 +130,12 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Purchase Orders Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
     await navBarPage.selectPurchaseOrder();
     await subNavBarPage.openFirstRecordFromTable("/v2/purchaseorders");
+    await subNavBarPage.clickSaveButton();
     await subNavBarPage.openPreview();
     await subNavBarPage.verifyPrintPreviewTitle();
     await subNavBarPage.verifyPdfLoadedAndNoError(
@@ -152,7 +145,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Return Parts Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
@@ -167,7 +159,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific JCNI Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -183,7 +174,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Due In and Due Out Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -200,7 +190,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Job Invoiced Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -216,7 +205,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Outstanding Credit Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -231,7 +219,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Outstanding Parts Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -241,13 +228,12 @@ test.describe("Listing Preview", () => {
     await subNavBarPage.clickOkButton();
     await subNavBarPage.verifyPrintPreviewTitle();
     await subNavBarPage.verifyPdfLoadedAndNoError(
-      ["AT_OutStandingParts", "rptQuoteDollarHour"],
+      "rptQuoteDollarHour",
       SUBREPORT_ERROR,
     );
   });
 
   test("Specific Debtor List Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -257,7 +243,7 @@ test.describe("Listing Preview", () => {
     const newTab = await subNavBarPage.clickOkButton(true);
     await subNavBarPage.verifyPrintPreviewTitle(newTab);
     await subNavBarPage.verifyPdfLoadedAndNoError(
-      "rptInvoiceWithoutGST",
+      "rptQuoteDollarHour",
       SUBREPORT_ERROR,
       newTab,
     );
@@ -265,7 +251,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Receipts Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -280,7 +265,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Creditor List Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -295,7 +279,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Payment List Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
@@ -313,7 +296,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Insurer Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -328,7 +310,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Customer Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -343,7 +324,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Vendor Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -358,7 +338,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Contact Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -373,7 +352,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Recurring Remarks Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -388,7 +366,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Quick Items Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -403,7 +380,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Items Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -418,7 +394,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Other Labour Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -433,7 +408,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Vehicle Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
@@ -448,7 +422,6 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific UnScheduledmodels Listing Preview", async ({ page }) => {
-    await epic("Specific Listing Preview");
     await feature("Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
