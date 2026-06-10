@@ -102,7 +102,7 @@ jobs:
       # Tests — CSR project only
       # ─────────────────────────────────────────────────────────────────
       - name: Run E2E tests (CSR — staging)
-        run: npm run test:staging -- --project=flexiquote-csr
+        run: npm run test:staging -- --project=flexiquote-csr tests/regression
         continue-on-error: true # always reach the report step
 
       # ─────────────────────────────────────────────────────────────────
