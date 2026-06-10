@@ -2,7 +2,6 @@ import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { epic, feature, story } from "allure-js-commons";
-import { Response as PlaywrightResponse } from "@playwright/test";
 
 test.describe("Listing Preview", () => {
   let navBarPage: NavBarPage;

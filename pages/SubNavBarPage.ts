@@ -11,6 +11,7 @@ export class SubNavBarPage extends BasePage {
   previewButton: Locator;
   newButton: Locator;
   saveButton: Locator;
+  createButton: Locator;
   quoteAnalysis: Locator;
   salesAnalysis: Locator;
   printButton: Locator;
@@ -27,6 +28,7 @@ export class SubNavBarPage extends BasePage {
     this.previewButton = page.locator("#preview");
     this.newButton = page.locator("a#addnew").nth(1);
     this.saveButton = page.locator("a#save").nth(1);
+    this.createButton = page.getByText("saveCreate");
 
     // Repairer Quote Listing Page Locators
     this.quoteAnalysis = page
@@ -111,6 +113,20 @@ export class SubNavBarPage extends BasePage {
   async clickNewButton() {
     await step("Click New button", async () => {
       await this.newButton.click();
+    });
+  }
+
+  // Clicking New Plus  Button Method
+  async clickPlusNewButton() {
+    await step("Click New button", async () => {
+      await this.addNewButton.click();
+    });
+  }
+
+  // Clicking Create Button Method
+  async clickCreateButton() {
+    await step("Click Create button", async () => {
+      await this.createButton.click();
     });
   }
 
