@@ -55,6 +55,7 @@ export class NavBarPage extends BasePage {
   bookedIn: Locator;
   waitingOnParts: Locator;
   vehicleArrived: Locator;
+  quoteNumberText: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -211,6 +212,10 @@ export class NavBarPage extends BasePage {
     this.bookedIn = page.locator("text=Booked In");
     this.waitingOnParts = page.locator("text=Waiting On Parts");
     this.vehicleArrived = page.locator("text=Vehicle Arrived");
+
+    this.quoteNumberText = page.locator(
+      "div.quote-info span.is-size-4.has-text-weight-bold",
+    );
   }
 
   async expectDashboardVisible() {
@@ -470,4 +475,17 @@ export class NavBarPage extends BasePage {
       await this.emailSMS.click();
     });
   }
+
+  async extractAndStoreQuoteNumber(): Promise<string> {
+    return await step("Extract quote number", async () => {
+      await expect(this.quoteNumberText).toBeVisible();
+      const quoteNumber = (await this.quoteNumberText.textContent())?.trim();
+      if (!quoteNumber) {
+        throw new Error("Quote number was not found or text is empty");
+      }
+      return quoteNumber;
+    });
+  }
+
+  
 }

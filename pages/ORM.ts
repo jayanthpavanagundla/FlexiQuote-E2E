@@ -2,16 +2,16 @@ import * as fs from "fs";
 import * as path from "path";
 import { Page, expect, type Response } from "@playwright/test";
 import { type Locator } from "@playwright/test";
-import { BasePage } from "./Base/BasePage.js";
+import { BasePage } from "./Base/BasePage";
 import { step } from "allure-js-commons";
 import {
   generateInsuranceClaimNo,
   generateRegistrationNo,
   getFutureDateTime,
-} from "../helpers/dataGenerators.js";
+} from "../helpers/dataGenerators";
 
 export class ORM extends BasePage {
-  page: Page; // ← NOT readonly, must be reassignable when new tab opens
+  page: Page;
 
   // ─────────────────────────────────────────────
   // Stored XML State
@@ -48,6 +48,7 @@ export class ORM extends BasePage {
   estimatorInput: Locator;
   estimateStartDateInput: Locator;
   estimateEndDateInput: Locator;
+  headerLink: Locator;
   quotingLink: Locator;
   vehicleSectionsTab: Locator;
   manualSectionsTab: Locator;
@@ -119,6 +120,9 @@ export class ORM extends BasePage {
       .first();
 
     // Header Locators
+    this.headerLink = this.page.getByRole("link", {
+      name: "account_circle Header",
+    });
     this.transmissionDropdown = this.page
       .locator("div:nth-child(7) > div > .field > .control > .select > select")
       .first();
@@ -137,7 +141,9 @@ export class ORM extends BasePage {
       .first();
 
     // Quoting Tab Locators
-    this.quotingLink = this.page.getByRole("link", { name: "Quoting" });
+    this.quotingLink = this.page.getByRole("link", {
+      name: "edit_document Quoting",
+    });
     this.vehicleSectionsTab = this.page.locator("li", {
       hasText: "Vehicle Sections",
     });
@@ -943,6 +949,12 @@ export class ORM extends BasePage {
     });
   }
 
+  async clickHeaderTab(): Promise<void> {
+    await step("Click Header tab", async () => {
+      await this.headerLink.click();
+    });
+  }
+
   async SelectTransmission(option: string): Promise<void> {
     await step(`Select Transmission: ${option}`, async () => {
       await this.transmissionDropdown.selectOption(option);
@@ -1228,16 +1240,25 @@ export class ORM extends BasePage {
     const randomPartValues: number[] = [];
 
     // Update QuoteItemValue and PartValue together per QuoteItem (Quantity stays 1)
-    updatedXml = updatedXml.replace(/<QuoteItem>[\s\S]*?<\/QuoteItem>/g, (block) => {
-      const randomValue = this.generateRandomPartValue(10, 70);
-      randomPartValues.push(randomValue);
-      const formatted = this.formatXmlAmount(randomValue);
+    updatedXml = updatedXml.replace(
+      /<QuoteItem>[\s\S]*?<\/QuoteItem>/g,
+      (block) => {
+        const randomValue = this.generateRandomPartValue(10, 70);
+        randomPartValues.push(randomValue);
+        const formatted = this.formatXmlAmount(randomValue);
 
-      let updated = block;
-      updated = updated.replace(/<QuoteItemValue>[\s\S]*?<\/QuoteItemValue>/, `<QuoteItemValue>${formatted}</QuoteItemValue>`);
-      updated = updated.replace(/<PartValue>[\s\S]*?<\/PartValue>/, `<PartValue>${formatted}</PartValue>`);
-      return updated;
-    });
+        let updated = block;
+        updated = updated.replace(
+          /<QuoteItemValue>[\s\S]*?<\/QuoteItemValue>/,
+          `<QuoteItemValue>${formatted}</QuoteItemValue>`,
+        );
+        updated = updated.replace(
+          /<PartValue>[\s\S]*?<\/PartValue>/,
+          `<PartValue>${formatted}</PartValue>`,
+        );
+        return updated;
+      },
+    );
 
     if (randomPartValues.length === 0) {
       throw new Error("No QuoteItem blocks found in XML.");
@@ -1377,7 +1398,9 @@ export class ORM extends BasePage {
 
     // Sum all QuoteItemValues (existing + new extra) — this matches what the app displays
     const allPartValues = [...existingQuoteItemValues, extraPartValue];
-    const grandTotalExTax = this.roundToTwo(allPartValues.reduce((sum, v) => sum + v, 0));
+    const grandTotalExTax = this.roundToTwo(
+      allPartValues.reduce((sum, v) => sum + v, 0),
+    );
     const taxAmount = this.roundToTwo(grandTotalExTax * 0.1);
     const grandTotalIncTax = this.roundToTwo(grandTotalExTax + taxAmount);
 

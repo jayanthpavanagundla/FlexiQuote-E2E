@@ -15,7 +15,7 @@ export function buildQuoteData() {
       model: "M3",
       transmission: "A",
       color: "Powder Blue",
-      vin: "35ftghr7ccg",
+      vin: "35GJKSIS425",
       engine: "v8",
       year: "2000",
       cyl: "6",

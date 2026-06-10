@@ -14,7 +14,8 @@ const COLORS = ["Red", "Blue", "Green", "Silver", "Black", "White"];
 
 /** Unique customer for one test run — same 8-digit suffix on first/last name. */
 export function generateRandomCustomer() {
-  const suffix = String(Math.floor(10000000 + Math.random() * 90000000));
+  const num = Math.floor(1 + Math.random() * 9999);
+  const suffix = String(num).padStart(4, "0");
   return {
     firstName: `Automation${suffix}`,
     lastName: `Test${suffix}`,
@@ -62,6 +63,15 @@ export function generateRegistrationNo(): string {
   return result; // e.g. R56GH3GH2
 }
 
+export function generateVinNo(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "VIN";
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result; // e.g. VIN12AB34CD5678
+}
+
 export function getFutureDateTime(daysToAdd: number): string {
   const date = new Date();
   date.setDate(date.getDate() + daysToAdd);
@@ -71,4 +81,14 @@ export function getFutureDateTime(daysToAdd: number): string {
   const year = date.getFullYear();
 
   return `${day}/${month}/${year} 8:00 AM`;
+}
+
+export function randomNumbersGenerate(length: number): string {
+  let result = "";
+
+  for (let i = 0; i < length; i++) {
+    result += Math.floor(Math.random() * 10);
+  }
+
+  return result;
 }
