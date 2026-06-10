@@ -1,11 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
-import { buildQuoteData } from "../../helpers/quoteData";
 import { QuotePage } from "../../pages/Quote/QuotePage";
 import { ORM } from "../../pages/ORM";
 import { epic, step } from "allure-js-commons";
-import { getFutureDateTime } from "../../helpers/dataGenerators";
 
 let quoteNumber: string;
 // let quoteNumber: string = "10139";

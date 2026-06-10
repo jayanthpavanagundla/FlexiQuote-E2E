@@ -1,47 +1,100 @@
-import { test } from "@playwright/test";
-import { createQuoteFlow } from "../../helpers/quote-flow.js";
-import { QuotePage } from "../../pages/Quote/QuotePage.js";
-import { QuoteNavBar } from "../../pages/Quote/QuoteNavBar.js";
-import { buildQuoteData } from "../../helpers/quoteData.js";
-import { epic, feature, story } from "allure-js-commons";
+import { test, expect } from "@playwright/test";
+import { NavBarPage } from "../../pages/NavBarPage";
+import { SubNavBarPage } from "../../pages/SubNavBarPage";
+import { QuotePage } from "../../pages/Quote/QuotePage";
+import { ORM } from "../../pages/ORM";
+import { epic, step } from "allure-js-commons";
 
-test.describe.configure({ mode: "serial" });
+let quoteNumber: string;
+// let quoteNumber: string = "10139";
 
 test.describe("Create Quote", () => {
-  let createdCustomerFirstName = "";
-  let quoteData: ReturnType<typeof buildQuoteData>;
+  let navBarPage: NavBarPage;
+  let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
-  let quoteNavBar: QuoteNavBar;
+  let ormMsgPage: ORM;
 
   test.beforeEach(async ({ page }) => {
-    await epic("Quotes");
-    await feature("Quote Creation");
+    await epic("Auto Save");
 
-    quoteData = buildQuoteData();
+    navBarPage = new NavBarPage(page);
     quotePage = new QuotePage(page);
-    quoteNavBar = new QuoteNavBar(page);
+    subNavBarPage = new SubNavBarPage(page);
+    ormMsgPage = new ORM(page);
+
+    await page.goto("v2/");
+    await expect(page).toHaveURL(/\/v2\/$/);
   });
 
-  test("Create Quote with New Customer", async ({ page }) => {
-    await story("New Customer");
-    const { customerFirstName } = await createQuoteFlow(page);
-    createdCustomerFirstName = customerFirstName;
-
-    await quotePage.updateInsurer(quoteData.insurance.secondary);
-    await quotePage.expectInsurerSelected(quoteData.insurance.secondary);
-    await quoteNavBar.clickSave();
-    await quoteNavBar.clickBack();
+  test("Quote Creation", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await subNavBarPage.clickPlusNewButton();
+    quoteNumber = await navBarPage.extractAndStoreQuoteNumber();
+    // Section 01 — Vehicle Details
+    await quotePage.fillRegNo();
+    await quotePage.selectState();
+    await quotePage.makeAndModel();
+    await quotePage.selectDifferentPaintGroup();
+    await quotePage.selectDifferentTransmission();
+    await quotePage.selectDifferentColor();
+    await quotePage.fillVinNo();
+    await quotePage.fillEngineNo();
+    await quotePage.fillOdometer();
+    await quotePage.fillCylinders();
+    await quotePage.fillEngineSize();
+    await quotePage.fillTrimCode();
+    await quotePage.fillPaintCode();
+    // Section 02 - Customer Details
+    await quotePage.fillFirstName();
+    await quotePage.fillLastName();
+    // Section 03 — Insurance Details
+    await quotePage.selectRandomInsurer();
+    await quotePage.fillClaimNumber();
+    await ormMsgPage.enterEstimator("John Doe");
+    // Section 04 — Key Dates
+    await ormMsgPage.enterEstimateStartDate();
+    await ormMsgPage.enterEstimateEndDate();
+    // Save Quote
+    await subNavBarPage.clickCreateButton();
   });
 
-  test("Create Quote with Existing Customer", async ({ page }) => {
-    await story("Existing");
-    await createQuoteFlow(page, {
-      useExistingCustomer: createdCustomerFirstName,
+  test("Edit Quote and Verify", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    // 1. Change values — each method removes old, fills new, returns what was filled
+    const transmissionResult = await quotePage.selectDifferentTransmission();
+    const paintGroupResult = await quotePage.selectDifferentPaintGroup();
+    const colorResult = await quotePage.selectDifferentColor();
+    const vin = await quotePage.fillVinNo();
+    const engineNo = await quotePage.fillEngineNo();
+    const odometer = await quotePage.fillOdometer();
+    const cylinders = await quotePage.fillCylinders();
+    const engineSize = await quotePage.fillEngineSize();
+    const trimCode = await quotePage.fillTrimCode();
+    const paintCode = await quotePage.fillPaintCode();
+    const insurerResult = await quotePage.selectDifferentInsurer();
+    const firstNameResult = await quotePage.selectDifferentFirstName();
+    const lastNameResult = await quotePage.selectDifferentLastName();
+    // 2. Save and Reload
+    await subNavBarPage.clickSaveButton();
+    await page.reload();
+    // 3. Verify 
+    await quotePage.verifyEditedQuoteValuesAfterReload({
+      transmission: transmissionResult.selectedTransmission,
+      paintGroup: paintGroupResult.selectedPaintGroup,
+      color: colorResult.selectedColor,
+      vin,
+      engineNo,
+      odometer,
+      cylinders,
+      engineSize,
+      trimCode,
+      paintCode,
+      insurer: insurerResult.selectedInsurer,
+      firstName: firstNameResult.newFirstName,
+      lastName: lastNameResult.newLastName,
     });
-
-    await quotePage.updateInsurer(quoteData.insurance.secondary);
-    await quotePage.expectInsurerSelected(quoteData.insurance.secondary);
-    await quoteNavBar.clickSave();
-    await quoteNavBar.clickBack();
   });
 });
