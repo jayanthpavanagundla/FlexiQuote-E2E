@@ -22,7 +22,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Repairer Quote Listing Preview", async ({ page }) => {
-    await feature("Quote Listing Preview");
+    await feature("Specific Quote Listing Preview");
 
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
@@ -37,7 +37,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Misc Quote Listing Preview", async ({ page }) => {
-    await feature("Quote Listing Preview");
+    await feature("Specific Quote Listing Preview");
 
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectMiscQuote();
@@ -52,7 +52,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Quick Invoice Listing Preview", async ({ page }) => {
-    await feature("Debtor Listing Preview");
+    await feature("Specific Debtor Listing Preview");
 
     await navBarPage.openDebtorDropdown();
     await navBarPage.selectQuickInvoice();
@@ -66,7 +66,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Debtor Adjustment Listing Preview", async ({ page }) => {
-    await feature("Debtor Listing Preview");
+    await feature("Specific Debtor Listing Preview");
 
     await navBarPage.openDebtorDropdown();
     await navBarPage.selectDebtorAdjustment();
@@ -80,7 +80,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Receipt Entry Listing Preview", async ({ page }) => {
-    await feature("Debtor Listing Preview");
+    await feature("Specific Debtor Listing Preview");
 
     await navBarPage.openDebtorDropdown();
     await navBarPage.selectReceiptEntry();
@@ -97,7 +97,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Sundry Creditor Listing Preview", async ({ page }) => {
-    await feature("Creditor Listing Preview");
+    await feature("Specific Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
     await navBarPage.selectSundryCreditor();
@@ -111,7 +111,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Payment Entry Listing Preview", async ({ page }) => {
-    await feature("Creditor Listing Preview");
+    await feature("Specific Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
     await navBarPage.selectPaymentEntry();
@@ -129,7 +129,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Purchase Orders Listing Preview", async ({ page }) => {
-    await feature("Creditor Listing Preview");
+    await feature("Specific Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
     await navBarPage.selectPurchaseOrder();
@@ -144,7 +144,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Return Parts Listing Preview", async ({ page }) => {
-    await feature("Creditor Listing Preview");
+    await feature("Specific Creditor Listing Preview");
 
     await navBarPage.openCreditorDropdown();
     await navBarPage.selectReturnParts();
@@ -158,7 +158,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific JCNI Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectJCNI();
@@ -173,7 +173,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Due In and Due Out Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectDueInDueOut();
@@ -189,7 +189,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Job Invoiced Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectJobInvoiced();
@@ -204,7 +204,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Outstanding Credit Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectOutstandingCredits();
@@ -218,7 +218,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Outstanding Parts Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectOutstandingParts();
@@ -233,7 +233,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Debtor List Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectDebtorList();
@@ -242,7 +242,7 @@ test.describe("Listing Preview", () => {
     const newTab = await subNavBarPage.clickOkButton(true);
     await subNavBarPage.verifyPrintPreviewTitle(newTab);
     await subNavBarPage.verifyPdfLoadedAndNoError(
-      "rptQuoteDollarHour",
+      ["rptQuoteDollarHour", "rptInvoiceWithoutGST"],
       SUBREPORT_ERROR,
       newTab,
     );
@@ -250,7 +250,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Receipts Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectReceipts();
@@ -264,7 +264,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Creditor List Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectCreditorList();
@@ -278,7 +278,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Payment List Listing Preview", async ({ page }) => {
-    await feature("Reports Listing Preview");
+    await feature("Specific Reports Listing Preview");
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectPaymentList();
@@ -295,7 +295,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Insurer Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectInsurer();
@@ -309,7 +309,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Customer Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectCustomer();
@@ -323,7 +323,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Vendor Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectVendor();
@@ -337,7 +337,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Contact Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectContactProfile();
@@ -351,7 +351,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Recurring Remarks Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectRecurringRemarks();
@@ -365,7 +365,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Quick Items Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectQuickItem();
@@ -379,7 +379,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Items Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectItem();
@@ -393,7 +393,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Other Labour Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectOtherLabour();
@@ -407,7 +407,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific Vehicle Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectVehicle();
@@ -421,7 +421,7 @@ test.describe("Listing Preview", () => {
   });
 
   test("Specific UnScheduledmodels Listing Preview", async ({ page }) => {
-    await feature("Tables Listing Preview");
+    await feature("Specific Tables Listing Preview");
 
     await navBarPage.openTablesDropdown();
     await navBarPage.selectUnscheduledModel();

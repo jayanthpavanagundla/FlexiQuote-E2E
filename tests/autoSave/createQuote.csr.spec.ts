@@ -14,6 +14,26 @@ test.describe("Auto Save", () => {
   let quotePage: QuotePage;
   let ormMsgPage: ORM;
 
+  // // Enable AutoSave before all tests
+  // test.beforeAll(async ({ browser }) => {
+  //   const context = await browser.newContext();
+  //   const page = await context.newPage();
+  //   const nav = new NavBarPage(page);
+  //   await page.goto("v2/");
+  //   await nav.enableAutoSave("SKY Smash & Repair");
+  //   await context.close();
+  // });
+
+  // // Disable AutoSave after all tests
+  // test.afterAll(async ({ browser }) => {
+  //   const context = await browser.newContext();
+  //   const page = await context.newPage();
+  //   const nav = new NavBarPage(page);
+  //   await page.goto("v2/");
+  //   await nav.disableAutoSave("SKY Smash & Repair");
+  //   await context.close();
+  // });
+
   test.beforeEach(async ({ page }) => {
     await epic("Auto Save");
 
@@ -26,12 +46,11 @@ test.describe("Auto Save", () => {
     await expect(page).toHaveURL(/\/v2\/$/);
   });
 
-  test("Quote Creation", async ({ page }) => {
+  test("Quote Creation", async ({}) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     await subNavBarPage.clickPlusNewButton();
     quoteNumber = await navBarPage.extractAndStoreQuoteNumber();
-
     // Section 01 — Vehicle Details
     await quotePage.fillRegNo();
     await quotePage.selectState();
@@ -46,25 +65,21 @@ test.describe("Auto Save", () => {
     await quotePage.fillEngineSize();
     await quotePage.fillTrimCode();
     await quotePage.fillPaintCode();
-
     // Section 02 - Customer Details
     await quotePage.fillFirstName();
     await quotePage.fillLastName();
-
     // Section 03 — Insurance Details
     await quotePage.selectRandomInsurer();
     await quotePage.fillClaimNumber();
     await ormMsgPage.enterEstimator("John Doe");
-
     // Section 04 — Key Dates
     await ormMsgPage.enterEstimateStartDate();
     await ormMsgPage.enterEstimateEndDate();
-
     // Save Quote
     await subNavBarPage.clickCreateButton();
   });
 
-  test("Edit Quote and Verify", async ({ page }) => {
+  test("Edit and Verify Quote", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
@@ -106,4 +121,10 @@ test.describe("Auto Save", () => {
       lastName: lastNameResult.newLastName,
     });
   });
+
+  // test("Verify Quoting Item Order Persistence", async({}) =>{
+  //   await navBarPage.openQuoteDropdown();
+  //   await navBarPage.selectRepairerQuote();
+  //   await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+  // });
 });
