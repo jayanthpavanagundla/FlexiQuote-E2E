@@ -56,6 +56,9 @@ export class NavBarPage extends BasePage {
   waitingOnParts: Locator;
   vehicleArrived: Locator;
   quoteNumberText: Locator;
+  companyOnboarding: Locator;
+  companySetting: Locator;
+  autoSaveCheckbox: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -216,6 +219,10 @@ export class NavBarPage extends BasePage {
     this.quoteNumberText = page.locator(
       "div.quote-info span.is-size-4.has-text-weight-bold",
     );
+
+    this.companyOnboarding = page.locator("a").filter({ hasText: "Company Onboarding" });
+    this.companySetting = page.getByRole("link", { name: "Company Setting" });
+    this.autoSaveCheckbox = page.getByRole("checkbox").nth(2);
   }
 
   async expectDashboardVisible() {
@@ -487,5 +494,25 @@ export class NavBarPage extends BasePage {
     });
   }
 
-  
+  async enableAutoSave(companyName: string) {
+    await step("Enable AutoSave", async () => {
+      await this.page.locator("a").filter({ hasText: companyName }).click();
+      await this.companyOnboarding.click();
+      await this.companySetting.click();
+      if (!(await this.autoSaveCheckbox.isChecked())) {
+        await this.autoSaveCheckbox.click();
+      }
+    });
+  }
+
+  async disableAutoSave(companyName: string) {
+    await step("Disable AutoSave", async () => {
+      await this.page.locator("a").filter({ hasText: companyName }).click();
+      await this.companyOnboarding.click();
+      await this.companySetting.click();
+      if (await this.autoSaveCheckbox.isChecked()) {
+        await this.autoSaveCheckbox.click();
+      }
+    });
+  }
 }
