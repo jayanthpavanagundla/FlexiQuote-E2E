@@ -222,7 +222,11 @@ test.describe("Listing Preview", () => {
 
     await navBarPage.openReportDropdown();
     await navBarPage.selectOutstandingParts();
-    await subNavBarPage.openFirstRecordFromTable("/v2/outstandingparts");
+    const firstQuoteNo = await subNavBarPage.captureFirstQuoteNoAfterAction(
+      "/UniqApi/v1/outstandingparts/list/",
+      () => page.getByText("Quote No.").click(),
+    );
+    await subNavBarPage.openRecordByQuoteNoFromTable(firstQuoteNo);
     await subNavBarPage.openPreview();
     await subNavBarPage.clickOkButton();
     await subNavBarPage.verifyPrintPreviewTitle();
@@ -239,14 +243,12 @@ test.describe("Listing Preview", () => {
     await navBarPage.selectDebtorList();
     await subNavBarPage.openFirstRecordFromTable("/v2/debtorlists");
     await subNavBarPage.openPreview();
-    const newTab = await subNavBarPage.clickOkButton(true);
-    await subNavBarPage.verifyPrintPreviewTitle(newTab);
+    await subNavBarPage.clickOkButton();
+    await subNavBarPage.verifyPrintPreviewTitle();
     await subNavBarPage.verifyPdfLoadedAndNoError(
       ["rptQuoteDollarHour", "rptInvoiceWithoutGST"],
       SUBREPORT_ERROR,
-      newTab,
     );
-    await newTab?.close();
   });
 
   test("Specific Receipts Listing Preview", async ({ page }) => {

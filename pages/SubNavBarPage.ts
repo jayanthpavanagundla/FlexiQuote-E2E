@@ -3,6 +3,7 @@ import { Page, Response as PlaywrightResponse } from "@playwright/test";
 import { expect, type Locator } from "@playwright/test";
 import { step } from "allure-js-commons";
 import { BasePage } from "./Base/BasePage.js";
+import { LoadFnOutput } from "node:module";
 
 export class SubNavBarPage extends BasePage {
   addNewButton: Locator;
@@ -17,10 +18,14 @@ export class SubNavBarPage extends BasePage {
   printButton: Locator;
   printPreviewTitle: Locator;
   okButton: Locator;
+  copyQuoteOption: Locator;
+  existingQuote: Locator;
+  existingQuoteNumber: Locator;
+  overwriteExistingQuote: Locator;
+  copyQuoteBtn: Locator;
 
   constructor(page: Page) {
     super(page);
-
     // Preview Locators
     this.addNewButton = page.getByText("addNew");
     this.backButton = page.getByText("arrow_backBack");
@@ -29,6 +34,11 @@ export class SubNavBarPage extends BasePage {
     this.newButton = page.locator("a#addnew").nth(1);
     this.saveButton = page.locator("a#save").nth(1);
     this.createButton = page.getByText("saveCreate");
+    this.copyQuoteOption = page.getByText("content_copy Copy Quote");
+    this.existingQuote = page.locator("#existingQuote");
+    this.existingQuoteNumber = page.getByRole("textbox", { name: "Quote No." });
+    this.overwriteExistingQuote = page.locator("#chk-overwrite-quote");
+    this.copyQuoteBtn = page.getByRole("button", { name: "Copy" });
 
     // Repairer Quote Listing Page Locators
     this.quoteAnalysis = page
@@ -76,6 +86,159 @@ export class SubNavBarPage extends BasePage {
 
     await step("Click Preview", async () => {
       await this.previewButton.click();
+    });
+  }
+
+  // Clicking Three dots
+  async clickEllipisBtn() {
+    await step("Click more options menu", async () => {
+      await this.ellipsis.click();
+    });
+  }
+
+  // Copy to New Quote
+  async copyToNewQuote() {
+    await step("Clicking Copy Button", async () => {
+      await this.copyQuoteBtn.click();
+    });
+  }
+
+  // Copy to Existing Quote
+  async copyToExistingQuote(quoteNo: string) {
+    await step("Clicking Existing Quote Radio Button", async () => {
+      await this.existingQuote.click();
+    });
+    await step("Filling existing quote number", async () => {
+      await this.existingQuoteNumber.fill(quoteNo);
+    });
+    await step("Select the Overwrite checkbox", async () => {
+      await this.overwriteExistingQuote.check();
+    });
+    await step("Clicking Copy Button", async () => {
+      await this.copyQuoteBtn.click();
+    });
+  }
+
+  // Clicking Copy Quote
+  async selectCopyQuote() {
+    await step("Select Copy Quote Option", async () => {
+      await this.copyQuoteOption.click();
+    });
+  }
+
+  async waitForVehicleApiResponse(): Promise<Record<string, unknown>> {
+    return await step("Wait for vehicle API response", async () => {
+      let capturedData: Record<string, unknown> | undefined;
+      let captureError: unknown;
+      await this.page.route("**/UniqApi/v1/vehicles**", async (route) => {
+        try {
+          const apiResponse = await route.fetch();
+          capturedData = await apiResponse.json();
+          await route.fulfill({ response: apiResponse });
+        } catch (e) {
+          captureError = e;
+          await route.continue();
+        }
+      });
+      await this.page.waitForResponse(
+        (res) =>
+          res.url().includes("/UniqApi/v1/vehicles") && res.status() === 200,
+      );
+      await this.page.unroute("**/UniqApi/v1/vehicles**");
+      if (captureError !== undefined) throw captureError;
+      return capturedData!;
+    });
+  }
+
+  async verifyVehicleDataMatches(
+    original: Record<string, unknown>,
+    copied: Record<string, unknown>,
+  ): Promise<void> {
+    await step(
+      "Verify copied quote vehicle data matches original",
+      async () => {
+        const { id: _origId, ...originalFields } = original;
+        const { id: _copiedId, ...copiedFields } = copied;
+        expect(copiedFields).toEqual(originalFields);
+      },
+    );
+  }
+
+  async captureFirstQuoteNoAfterAction(
+    urlPattern: string,
+    action: () => Promise<void>,
+  ): Promise<string> {
+    return await step(
+      "Capture first quoteNo from sorted list response",
+      async () => {
+        let firstQuoteNo = "";
+
+        await this.page.route(`**${urlPattern}**`, async (route) => {
+          try {
+            const apiResponse = await route.fetch();
+            const data = (await apiResponse.json()) as Record<
+              string,
+              unknown
+            >[];
+            if (data.length > 0) {
+              firstQuoteNo = String(data[0].quoteNo ?? "");
+            }
+            await route.fulfill({ response: apiResponse });
+          } catch {
+            await route.continue();
+          }
+        });
+
+        await action();
+
+        await this.page.waitForResponse(
+          (res) => res.url().includes(urlPattern) && res.status() === 200,
+        );
+
+        await this.page.unroute(`**${urlPattern}**`);
+
+        return firstQuoteNo;
+      },
+    );
+  }
+
+  async openRecordByQuoteNoFromTable(quoteNo: string): Promise<void> {
+    await step(`Open record for quote ${quoteNo}`, async () => {
+      const targetRow = this.page
+        .getByRole("table")
+        .first()
+        .getByRole("row")
+        .filter({ has: this.page.locator("td") })
+        .filter({ hasText: quoteNo })
+        .first();
+
+      await expect(targetRow).toBeVisible();
+
+      const hrefLink = targetRow.locator("a[href]").first();
+      const hasHref = await hrefLink.isVisible().catch(() => false);
+      const link = hasHref ? hrefLink : targetRow.locator("a").first();
+
+      await expect(link).toBeVisible();
+
+      const urlBefore = this.page.url();
+      await link.click();
+
+      await this.page.waitForURL((url) => url.toString() !== urlBefore, {
+        waitUntil: "domcontentloaded",
+      });
+
+      await Promise.race([
+        this.page
+          .locator('div[name="headerMoreButtons"]')
+          .waitFor({ state: "visible" }),
+        this.page
+          .locator("a.button.is-primary.is-outlined.is-inverted")
+          .waitFor({ state: "visible" }),
+        this.page
+          .locator("button.button.is-primary")
+          .first()
+          .waitFor({ state: "visible" }),
+      ]);
     });
   }
 
@@ -153,54 +316,6 @@ export class SubNavBarPage extends BasePage {
   }
 
   //------------------------ PDF Verification Method ------------------------//
-
-  // Reusable PDF Verification Method
-  // async verifyPdfLoadedAndNoError(
-  //     reportName: string,
-  //     errorText?: string,
-  //     page: Page = this.page
-  // ) {
-  //     await expect(page).toHaveURL(/printpreview/);
-
-  //     const response = await page.waitForResponse(res =>
-  //         res.url().includes(`/reports/postreport/${reportName}/pdf`) &&
-  //         res.status() === 200 &&
-  //         res.headers()['content-type']?.includes('application/pdf')
-  //     );
-
-  //     await step(`Verify PDF "${reportName}" loaded successfully`, async () => {
-  //         expect(response.ok()).toBeTruthy();
-  //     });
-
-  //     if (errorText) {
-  //         await step(`Verify "${errorText}" is not in PDF`, async () => {
-  //             const pdfBuffer = await response.body();
-
-  //             const isPdfValid =
-  //                 pdfBuffer[0] === 0x25 &&
-  //                 pdfBuffer[1] === 0x50 &&
-  //                 pdfBuffer[2] === 0x44 &&
-  //                 pdfBuffer[3] === 0x46;
-
-  //             expect(isPdfValid, 'Response is not a valid PDF').toBeTruthy();
-
-  //             const pdfData = await pdfParse(pdfBuffer);
-
-  //             const normalizedPdfText = pdfData.text.replace(/\s+/g, ' ');
-  //             const normalizedErrorText = errorText.replace(/\s+/g, ' ');
-
-  //             expect
-  //                 .soft(
-  //                     normalizedPdfText,
-  //                     `Error found in PDF: "${errorText}" should NOT be present`
-  //                 )
-  //                 .not.toContain(normalizedErrorText);
-  //         });
-  //     }
-
-  //     return response;
-  // }
-
   async verifyPdfLoadedAndNoError(
     reportName: string | string[],
     errorText?: string,
@@ -260,36 +375,6 @@ export class SubNavBarPage extends BasePage {
   }
 
   // Check First Row Checkbox and Open New Tab
-  // async checkFirstRowCheckbox(): Promise<Page> {
-  //     let newTab!: Page;
-
-  //     await step('Check checkbox and open Print Preview', async () => {
-  //         const table = this.page.getByRole('table').first();
-
-  //         const firstDataRow = table
-  //             .getByRole('row')
-  //             .filter({ has: this.page.locator('td') })
-  //             .first();
-
-  //         await expect(firstDataRow).toBeVisible();
-  //         const checkbox = firstDataRow.locator('input[type="checkbox"]').first();
-  //         await checkbox.check();
-  //         await expect(checkbox).toBeChecked();
-  //         const printButton = this.page.locator('button.button.is-primary', {
-  //             hasText: 'Print Statement'
-  //         });
-  //         const [tab] = await Promise.all([
-  //             this.page.context().waitForEvent('page'),
-  //             printButton.click()
-  //         ]);
-  //         await tab.waitForLoadState('domcontentloaded');
-  //         await expect(tab).toHaveURL(/\/v2\/printpreview\//);
-
-  //         newTab = tab;
-  //     });
-  //     return newTab;
-  // }
-
   async checkFirstRowCheckbox(
     printButtonText: string = "Print Statement",
   ): Promise<Page> {
@@ -337,9 +422,7 @@ export class SubNavBarPage extends BasePage {
   }
 
   //------------------------ Table First Row Interaction Methods ------------------------//
-
   // Method to open the first record from the table based on the provided URL
-
   async openFirstRecordFromTable(route: string): Promise<void> {
     await step(`Open first record from table on route: ${route}`, async () => {
       await this.page.waitForURL(`**${route}**`);
@@ -389,7 +472,6 @@ export class SubNavBarPage extends BasePage {
   }
 
   //----------------------- Common Methods ------------------------//
-
   // Method For Repairer Quote Listing Page to open Quote Analysis
   async openQuoteAnalysis() {
     await step("Click Quote Analysis", async () => {
