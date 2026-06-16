@@ -1,4 +1,5 @@
 import { expect, type Page, type Locator } from "@playwright/test";
+import { step } from "allure-js-commons";
 
 const CATEGORY_INDEX: Record<string, number> = {
   rr: 0,
@@ -455,10 +456,150 @@ export class QuoteItemsPage {
     await expect(this.partsSection).toContainText(text);
   }
 
+  // VEHICLE SECTIONS: ADD ITEMS BY INDEX
+  async addQuotingItemsByIndex(count: number): Promise<string[]> {
+    return await step(
+      `Add ${count} quoting items from Vehicle Sections in sequence`,
+      async () => {
+        const clickableRows = this.page.locator(
+          "table tbody tr:has(td:last-child div.butterfly-item-values)",
+        );
+        await expect(clickableRows.first()).toBeVisible({ timeout: 10000 });
+        const total = await clickableRows.count();
+        if (total < count) {
+          throw new Error(
+            `Not enough rows to add ${count}; only ${total} available`,
+          );
+        }
+        const addedPartNames: string[] = [];
+        for (let i = 0; i < count; i++) {
+          const row = clickableRows.nth(i);
+          const partName = (
+            (await row.locator("td").nth(1).textContent()) ?? ""
+          ).trim();
+          addedPartNames.push(partName);
+          const button = row.locator("td:last-child div.butterfly-item-values");
+          await button.scrollIntoViewIfNeeded();
+          await expect(button).toBeVisible();
+          await button.click({ force: true });
+          await this.page.waitForTimeout(300);
+          await step(`Added item ${i + 1}: "${partName}"`, async () => {});
+        }
+        return addedPartNames;
+      },
+    );
+  }
+  // VERIFY PARTS ORDER IN DOM AFTER RELOAD
+  async verifyPartsOrderAfterReload(addedParts: string[]): Promise<void> {
+    await step(
+      "Verify quote part rows order matches the sequence",
+      async () => {
+        await this.partsSection.scrollIntoViewIfNeeded();
+        const visibleRows = this.partsSection.locator(
+          ".item-row-quote-builder-parts:not(.is-hidden)",
+        );
+        await expect(visibleRows.first()).toBeVisible({ timeout: 10000 });
+        const partDescriptions: string[] = [];
+        const rowCount = await visibleRows.count();
+        for (let i = 0; i < rowCount; i++) {
+          const descSpan = visibleRows.nth(i).locator('span[id$="-itemDesc"]');
+          const text = ((await descSpan.textContent()) ?? "").trim();
+          partDescriptions.push(text);
+        }
+        await step("Verify part sequence matches add order", async () => {
+          for (let i = 0; i < addedParts.length; i++) {
+            const expected = addedParts[i];
+            const actual = partDescriptions[i];
+            expect
+              .soft(actual, `Row ${i + 1} should be "${expected}"`)
+              .toBe(expected);
+            await step(
+              `Row ${i + 1}: expected="${expected}" actual="${actual ?? "NOT FOUND"}"`,
+              async () => {},
+            );
+          }
+        });
+      },
+    );
+  }
+  // VERIFY LINE NUMBER SEQUENCE ACROSS PARTS ROWS
+  async verifyLineNumberSequence(): Promise<void> {
+    await step(
+      "Verify parts line numbers increment by 1 for each consecutive row",
+      async () => {
+        await this.partsSection.scrollIntoViewIfNeeded();
+
+        const visibleRows = this.partsSection.locator(
+          ".item-row-quote-builder-parts:not(.is-hidden)",
+        );
+        await expect(visibleRows.first()).toBeVisible({ timeout: 30000 });
+
+        const count = await visibleRows.count();
+        const lineNumbers: number[] = [];
+
+        for (let i = 0; i < count; i++) {
+          await visibleRows.nth(i).click();
+          const lineNoValue = await this.page
+            .getByRole("textbox")
+            .nth(4)
+            .inputValue();
+          const lineNo = parseInt(lineNoValue, 10);
+          lineNumbers.push(lineNo);
+          await step(`Row ${i + 1}: line number = ${lineNoValue}`, async () => {});
+        }
+
+        await step(
+          "Verify each row's line number equals previous + 1",
+          async () => {
+            for (let i = 1; i < lineNumbers.length; i++) {
+              const expected = lineNumbers[i - 1] + 1;
+              const actual = lineNumbers[i];
+              expect
+                .soft(actual, `Row ${i + 1} should be line ${expected}`)
+                .toBe(expected);
+            }
+          },
+        );
+      },
+    );
+  }
+
+  // DELETE ALL PARTS AND VERIFY COUNT REACHES ZERO
+  async deleteAllParts(): Promise<void> {
+    await step(
+      "Delete all parts rows and verify Parts count shows (0)",
+      async () => {
+        await this.partsSection.scrollIntoViewIfNeeded();
+
+        const visibleRows = this.partsSection.locator(
+          ".item-row-quote-builder-parts:not(.is-hidden)",
+        );
+        await expect(visibleRows.first()).toBeVisible({ timeout: 30000 });
+
+        let remaining = await visibleRows.count();
+        while (remaining > 0) {
+          const firstRow = visibleRows.first();
+          await firstRow.scrollIntoViewIfNeeded();
+
+          // Hover the delete button (not the row) to trigger its CSS
+          // transition from hidden/ghost to clickable, then click it.
+          const deleteBtn = firstRow.locator('button[data-tooltip="Delete"]');
+          await deleteBtn.hover({ force: true });
+          await deleteBtn.click();
+
+          await this.page.waitForTimeout(300);
+          remaining = await visibleRows.count();
+        }
+        await expect(
+          this.partsSection.locator("span.ml-2:not(.has-text-weight-bold)"),
+        ).toHaveText("(0)", { timeout: 10000 });
+      },
+    );
+  }
+
   _escape(str: string) {
     return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
-
   _exact(text: string) {
     return new RegExp(`^\\s*${this._escape(text)}\\s*$`);
   }
