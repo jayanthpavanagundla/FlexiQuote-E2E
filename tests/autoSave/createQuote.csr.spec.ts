@@ -2,17 +2,20 @@ import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
+import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
 import { ORM } from "../../pages/ORM";
 import { epic, step } from "allure-js-commons";
 
 let quoteNumber: string;
-// let quoteNumber: string = "10139";
+// let quoteNumber: string = "10250";
+let addedParts: string[] = [];
 
 test.describe("Auto Save", () => {
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
   let ormMsgPage: ORM;
+  let quoteItemsPage: QuoteItemsPage;
 
   // // Enable AutoSave before all tests
   // test.beforeAll(async ({ browser }) => {
@@ -41,6 +44,7 @@ test.describe("Auto Save", () => {
     quotePage = new QuotePage(page);
     subNavBarPage = new SubNavBarPage(page);
     ormMsgPage = new ORM(page);
+    quoteItemsPage = new QuoteItemsPage(page);
 
     await page.goto("v2/");
     await expect(page).toHaveURL(/\/v2\/$/);
@@ -122,9 +126,45 @@ test.describe("Auto Save", () => {
     });
   });
 
-  // test("Verify Quoting Item Order Persistence", async({}) =>{
-  //   await navBarPage.openQuoteDropdown();
-  //   await navBarPage.selectRepairerQuote();
-  //   await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-  // });
+  test("Add Quoting Items", async ({ page }) => {
+    test.setTimeout(600_000);
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await ormMsgPage.openVehicleSectionsTab();
+    addedParts = await quoteItemsPage.addQuotingItemsByIndex(25);
+    await ormMsgPage.openQuotingTab();
+    await quotePage.waitForAutoSaveCloudDone();
+  });
+
+  test("Verify Quoting Item Sequence", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await page.reload({ waitUntil: "networkidle" });
+    await ormMsgPage.openQuotingTab();
+    await quoteItemsPage.verifyPartsOrderAfterReload(addedParts);
+  });
+
+  test("Verify Line Number Sequence", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await page.reload({ waitUntil: "networkidle" });
+    await ormMsgPage.openQuotingTab();
+    await quoteItemsPage.verifyLineNumberSequence();
+  });
+
+  test("Delete All Parts", async ({ page }) => {
+    test.setTimeout(120_000);
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await quoteItemsPage.deleteAllParts();
+    await quotePage.waitForAutoSaveCloudDone();
+  });
 });
