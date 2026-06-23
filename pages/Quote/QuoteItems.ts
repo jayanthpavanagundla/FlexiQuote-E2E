@@ -522,6 +522,52 @@ export class QuoteItemsPage {
       },
     );
   }
+  
+  // CAPTURE CURRENT PARTS ORDER (e.g. on source quote, before copying to an existing quote)
+  async captureQuotingItemsSequence(): Promise<string[]> {
+    return await step("Capture quoting items sequence", async () => {
+      await this.partsSection.scrollIntoViewIfNeeded();
+      const visibleRows = this.partsSection.locator(
+        ".item-row-quote-builder-parts:not(.is-hidden)",
+      );
+      await expect(visibleRows.first()).toBeVisible({ timeout: 10000 });
+      const rowCount = await visibleRows.count();
+      const partDescriptions: string[] = [];
+      for (let i = 0; i < rowCount; i++) {
+        const descSpan = visibleRows.nth(i).locator('span[id$="-itemDesc"]');
+        const text = ((await descSpan.textContent()) ?? "").trim();
+        partDescriptions.push(text);
+      }
+      return partDescriptions;
+    });
+  }
+
+  // VERIFY COPIED-TO-EXISTING QUOTE PARTS SEQUENCE MATCHES THE SOURCE QUOTE
+  async verifyCopytoExistingItemsSequence(
+    expectedSequence: string[],
+  ): Promise<void> {
+    await step(
+      "Verify existing quote parts sequence matches copied quote",
+      async () => {
+        const actualSequence = await this.captureQuotingItemsSequence();
+        expect
+          .soft(actualSequence.length, "Total parts count should match")
+          .toBe(expectedSequence.length);
+        for (let i = 0; i < expectedSequence.length; i++) {
+          const expected = expectedSequence[i];
+          const actual = actualSequence[i];
+          expect
+            .soft(actual, `Row ${i + 1} should be "${expected}"`)
+            .toBe(expected);
+          await step(
+            `Row ${i + 1}: expected="${expected}" actual="${actual ?? "NOT FOUND"}"`,
+            async () => {},
+          );
+        }
+      },
+    );
+  }
+
   // VERIFY LINE NUMBER SEQUENCE ACROSS PARTS ROWS
   async verifyLineNumberSequence(): Promise<void> {
     await step(
@@ -545,7 +591,10 @@ export class QuoteItemsPage {
             .inputValue();
           const lineNo = parseInt(lineNoValue, 10);
           lineNumbers.push(lineNo);
-          await step(`Row ${i + 1}: line number = ${lineNoValue}`, async () => {});
+          await step(
+            `Row ${i + 1}: line number = ${lineNoValue}`,
+            async () => {},
+          );
         }
 
         await step(

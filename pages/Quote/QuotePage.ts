@@ -1,5 +1,5 @@
 import { expect, type Page, type Locator } from "@playwright/test";
-import { step } from "allure-js-commons";
+import { step, attachment, parameter } from "allure-js-commons";
 import { BasePage } from "../Base/BasePage.js";
 import { ORM } from "../ORM.js";
 import {
@@ -15,6 +15,22 @@ type SelectionResult = {
   oldLabel: string;
   selectedLabel: string;
   selectedValue: string;
+};
+
+type QuoteFieldValues = {
+  regNo: string;
+  transmission: string;
+  paintGroup: string;
+  color: string;
+  vin: string;
+  engineNo: string;
+  cylinders: string;
+  engineSize: string;
+  trimCode: string;
+  paintCode: string;
+  firstName: string;
+  lastName: string;
+  insurer: string;
 };
 
 export class QuotePage extends BasePage {
@@ -769,6 +785,94 @@ export class QuotePage extends BasePage {
       await step(`Insurer Verified: ${expected.insurer}`, async () => {});
       await step(`First Name Verified: ${expected.firstName}`, async () => {});
       await step(`Last Name Verified: ${expected.lastName}`, async () => {});
+    });
+  }
+
+  //--------------------------- CAPTURE & VERIFY COPIED QUOTE DATA (UI) ----------------------------//
+  async captureQuoteFieldValues(): Promise<QuoteFieldValues> {
+    return await step("Capture quote field values from UI", async () => {
+      const regNo = (await this.regoInput.inputValue()).trim();
+      const transmission = await this.dropdown2.evaluate(
+        (select: HTMLSelectElement) =>
+          select.selectedOptions[0]?.textContent?.trim() || "",
+      );
+      const paintGroup = await this.dropdown1.evaluate(
+        (select: HTMLSelectElement) =>
+          select.selectedOptions[0]?.textContent?.trim() || "",
+      );
+      const color = (await this.colorInput.inputValue()).trim();
+      const vin = (await this.vinInput.inputValue()).trim();
+      const engineNo = (await this.engineInput.inputValue()).trim();
+      const cylinders = (await this.cylInput.inputValue()).trim();
+      const engineSize = (await this.ccInput.inputValue()).trim();
+      const trimCode = (await this.paint1.inputValue()).trim();
+      const paintCode = (await this.paint2.inputValue()).trim();
+      const firstName = (await this.firstName.inputValue()).trim();
+      const lastName = (await this.lastName.inputValue()).trim();
+      const insurer = ((await this.selectedInsurer.textContent()) ?? "").trim();
+
+      return {
+        regNo,
+        transmission,
+        paintGroup,
+        color,
+        vin,
+        engineNo,
+        cylinders,
+        engineSize,
+        trimCode,
+        paintCode,
+        firstName,
+        lastName,
+        insurer,
+      };
+    });
+  }
+
+  async verifyCopiedQuoteValuesMatch(
+    original: QuoteFieldValues,
+    copied: QuoteFieldValues,
+    newQuoteNumber?: string,
+  ): Promise<void> {
+    await step("Verify copied quote values match original (UI)", async () => {
+      await attachment(
+        "Original Quote Field Values (UI)",
+        JSON.stringify(original, null, 2),
+        "application/json",
+      );
+      await attachment(
+        "Copied Quote Field Values (UI)",
+        JSON.stringify(copied, null, 2),
+        "application/json",
+      );
+      if (newQuoteNumber) {
+        await parameter("New Quote Number", newQuoteNumber);
+      }
+
+      const fields: Array<{ label: string; key: keyof QuoteFieldValues }> = [
+        { label: "Registration No.", key: "regNo" },
+        { label: "Transmission", key: "transmission" },
+        { label: "Paint Group", key: "paintGroup" },
+        { label: "Colour", key: "color" },
+        { label: "VIN", key: "vin" },
+        { label: "Engine No.", key: "engineNo" },
+        { label: "Cylinders", key: "cylinders" },
+        { label: "Engine Size", key: "engineSize" },
+        { label: "Trim Code", key: "trimCode" },
+        { label: "Paint Code", key: "paintCode" },
+        { label: "First Name", key: "firstName" },
+        { label: "Last Name", key: "lastName" },
+        { label: "Insurer", key: "insurer" },
+      ];
+      for (const { label, key } of fields) {
+        expect
+          .soft(copied[key], `Verify ${label} matches copied quote`)
+          .toBe(original[key]);
+        await step(
+          `${label} - expected: "${original[key]}", actual: "${copied[key]}"`,
+          async () => {},
+        );
+      }
     });
   }
 }
