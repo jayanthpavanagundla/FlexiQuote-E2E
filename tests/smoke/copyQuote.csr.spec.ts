@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
@@ -8,9 +8,13 @@ import { epic, step } from "allure-js-commons";
 
 let quoteNumber: string;
 let newquoteNumber: string;
+let existingQuoteNumber: string;
+// let newquoteNumber: string = "10300";
 // let quoteNumber: string = "10250";
 
-test.describe("Auto Save", () => {
+test.describe("Copy Quote", () => {
+  test.describe.configure({ mode: "serial" });
+
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
@@ -66,26 +70,52 @@ test.describe("Auto Save", () => {
   test("Copy Quote to New Quote", async ({}) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    const originalQuoteData = await quotePage.captureQuoteFieldValues();
+    await subNavBarPage.clickEllipisBtn();
+    await subNavBarPage.selectCopyQuote();
+    await subNavBarPage.copyToNewQuote();
+    await subNavBarPage.expectToast(
+      "Copy quote successful. Please remember to save quote.",
+    );
+    await subNavBarPage.clickCreateButton();
+    newquoteNumber = await navBarPage.extractAndStoreQuoteNumber();
+    await subNavBarPage.expectToast(`New quote ${newquoteNumber} added`);
+    const copiedQuoteData = await quotePage.captureQuoteFieldValues();
+    await quotePage.verifyCopiedQuoteValuesMatch(
+      originalQuoteData,
+      copiedQuoteData,
+      newquoteNumber,
+    );
+  });
 
-    const [originalVehicleData] = await Promise.all([
-      subNavBarPage.waitForVehicleApiResponse(),
-      ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber),
-    ]);
+  test("Copy Quote to Existing Quote", async ({}) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(newquoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await ormMsgPage.openVehicleSectionsTab();
+    await quoteItemsPage.addQuotingItemsByIndex(5);
+    await ormMsgPage.openQuotingTab();
+    await subNavBarPage.clickSaveButton();
+    await subNavBarPage.expectToast(`Quote ${newquoteNumber} saved`);
+
+    const newQuoteItemsSequence =
+      await quoteItemsPage.captureQuotingItemsSequence();
 
     await subNavBarPage.clickEllipisBtn();
     await subNavBarPage.selectCopyQuote();
-
-    const [newVehicleData] = await Promise.all([
-      subNavBarPage.waitForVehicleApiResponse(),
-      subNavBarPage.copyToNewQuote(),
-    ]);
-
-    await subNavBarPage.expectToast("Copy quote successful. Please remember to save quote.");
-    await subNavBarPage.clickCreateButton();
-    newquoteNumber = await navBarPage.extractAndStoreQuoteNumber();
-    await subNavBarPage.verifyVehicleDataMatches(
-      originalVehicleData,
-      newVehicleData,
+    const targetQuoteNo = String(Number(newquoteNumber) - 7);
+    await subNavBarPage.copyToExistingQuote(targetQuoteNo);
+    await subNavBarPage.expectToast(
+      "Copy quote successful. Please remember to save quote.",
+    );
+    existingQuoteNumber = await navBarPage.extractAndStoreQuoteNumber();
+    await subNavBarPage.clickSaveButton();
+    await subNavBarPage.expectToast(`Quote ${existingQuoteNumber} saved`);
+    await ormMsgPage.openQuotingTab();
+    await quoteItemsPage.verifyCopytoExistingItemsSequence(
+      newQuoteItemsSequence,
     );
   });
 });

@@ -1,4 +1,4 @@
-import pdfParse from "pdf-parse";
+﻿import pdfParse from "pdf-parse";
 import { Page, Response as PlaywrightResponse } from "@playwright/test";
 import { expect, type Locator } from "@playwright/test";
 import { step } from "allure-js-commons";
@@ -126,44 +126,7 @@ export class SubNavBarPage extends BasePage {
     });
   }
 
-  async waitForVehicleApiResponse(): Promise<Record<string, unknown>> {
-    return await step("Wait for vehicle API response", async () => {
-      let capturedData: Record<string, unknown> | undefined;
-      let captureError: unknown;
-      await this.page.route("**/UniqApi/v1/vehicles**", async (route) => {
-        try {
-          const apiResponse = await route.fetch();
-          capturedData = await apiResponse.json();
-          await route.fulfill({ response: apiResponse });
-        } catch (e) {
-          captureError = e;
-          await route.continue();
-        }
-      });
-      await this.page.waitForResponse(
-        (res) =>
-          res.url().includes("/UniqApi/v1/vehicles") && res.status() === 200,
-      );
-      await this.page.unroute("**/UniqApi/v1/vehicles**");
-      if (captureError !== undefined) throw captureError;
-      return capturedData!;
-    });
-  }
-
-  async verifyVehicleDataMatches(
-    original: Record<string, unknown>,
-    copied: Record<string, unknown>,
-  ): Promise<void> {
-    await step(
-      "Verify copied quote vehicle data matches original",
-      async () => {
-        const { id: _origId, ...originalFields } = original;
-        const { id: _copiedId, ...copiedFields } = copied;
-        expect(copiedFields).toEqual(originalFields);
-      },
-    );
-  }
-
+  // Sorting Table in Asscending Order to select First record
   async captureFirstQuoteNoAfterAction(
     urlPattern: string,
     action: () => Promise<void>,
@@ -172,7 +135,6 @@ export class SubNavBarPage extends BasePage {
       "Capture first quoteNo from sorted list response",
       async () => {
         let firstQuoteNo = "";
-
         await this.page.route(`**${urlPattern}**`, async (route) => {
           try {
             const apiResponse = await route.fetch();
@@ -188,15 +150,11 @@ export class SubNavBarPage extends BasePage {
             await route.continue();
           }
         });
-
         await action();
-
         await this.page.waitForResponse(
           (res) => res.url().includes(urlPattern) && res.status() === 200,
         );
-
         await this.page.unroute(`**${urlPattern}**`);
-
         return firstQuoteNo;
       },
     );
@@ -211,22 +169,16 @@ export class SubNavBarPage extends BasePage {
         .filter({ has: this.page.locator("td") })
         .filter({ hasText: quoteNo })
         .first();
-
       await expect(targetRow).toBeVisible();
-
       const hrefLink = targetRow.locator("a[href]").first();
       const hasHref = await hrefLink.isVisible().catch(() => false);
       const link = hasHref ? hrefLink : targetRow.locator("a").first();
-
       await expect(link).toBeVisible();
-
       const urlBefore = this.page.url();
       await link.click();
-
       await this.page.waitForURL((url) => url.toString() !== urlBefore, {
         waitUntil: "domcontentloaded",
       });
-
       await Promise.race([
         this.page
           .locator('div[name="headerMoreButtons"]')
@@ -315,7 +267,7 @@ export class SubNavBarPage extends BasePage {
     });
   }
 
-  //------------------------ PDF Verification Method ------------------------//
+  // PDF Verification Method
   async verifyPdfLoadedAndNoError(
     reportName: string | string[],
     errorText?: string,
@@ -323,10 +275,7 @@ export class SubNavBarPage extends BasePage {
     preCapturedResponse?: PlaywrightResponse,
   ) {
     await expect(page).toHaveURL(/printpreview/);
-
-    // Normalize to array — works for 1, 2, 3+ report names
     const reportNames = Array.isArray(reportName) ? reportName : [reportName];
-
     const response = preCapturedResponse
       ? preCapturedResponse
       : await page.waitForResponse(
@@ -337,31 +286,24 @@ export class SubNavBarPage extends BasePage {
             res.status() === 200 &&
             res.headers()["content-type"]?.includes("application/pdf"),
         );
-
     await step(
       `Verify PDF "${reportNames.join(" or ")}" loaded successfully`,
       async () => {
         expect(response.ok()).toBeTruthy();
       },
     );
-
     if (errorText) {
       await step(`Verify "${errorText}" is not in PDF`, async () => {
         const pdfBuffer = await response.body();
-
         const isPdfValid =
           pdfBuffer[0] === 0x25 &&
           pdfBuffer[1] === 0x50 &&
           pdfBuffer[2] === 0x44 &&
           pdfBuffer[3] === 0x46;
-
         expect(isPdfValid, "Response is not a valid PDF").toBeTruthy();
-
         const pdfData = await pdfParse(pdfBuffer);
-
         const normalizedPdfText = pdfData.text.replace(/\s+/g, " ");
         const normalizedErrorText = errorText.replace(/\s+/g, " ");
-
         expect
           .soft(
             normalizedPdfText,
@@ -370,7 +312,6 @@ export class SubNavBarPage extends BasePage {
           .not.toContain(normalizedErrorText);
       });
     }
-
     return response;
   }
 
@@ -385,7 +326,6 @@ export class SubNavBarPage extends BasePage {
         .getByRole("row")
         .filter({ has: this.page.locator("td") })
         .first();
-
       await expect(firstDataRow).toBeVisible();
       const checkbox = firstDataRow.locator('input[type="checkbox"]').first();
       await checkbox.check();
@@ -407,12 +347,10 @@ export class SubNavBarPage extends BasePage {
   async uncheckFirstRowCheckbox(): Promise<void> {
     await step("Uncheck the first row checkbox", async () => {
       const table = this.page.getByRole("table").first();
-
       const firstDataRow = table
         .getByRole("row")
         .filter({ has: this.page.locator("td") })
         .first();
-
       await expect(firstDataRow).toBeVisible();
       const checkbox = firstDataRow.locator('input[type="checkbox"]').first();
       await expect(checkbox).toBeVisible();
@@ -421,41 +359,28 @@ export class SubNavBarPage extends BasePage {
     });
   }
 
-  //------------------------ Table First Row Interaction Methods ------------------------//
+  // Table First Row Interaction Methods
   // Method to open the first record from the table based on the provided URL
   async openFirstRecordFromTable(route: string): Promise<void> {
     await step(`Open first record from table on route: ${route}`, async () => {
       await this.page.waitForURL(`**${route}**`);
-
       const table = this.page.getByRole("table").first();
-
       const firstDataRow = table
         .getByRole("row")
         .filter({ has: this.page.locator("td") })
         .first();
-
       await expect(firstDataRow).toBeVisible();
-
-      // Dynamically resolve the best clickable link
       const firstHrefLink = firstDataRow.locator("a[href]").first();
       const hasVisibleHref = await firstHrefLink.isVisible().catch(() => false);
       const link = hasVisibleHref
         ? firstHrefLink
         : firstDataRow.locator("a").first();
-
       await expect(link).toBeVisible();
-
-      // Capture URL before click
       const urlBeforeClick = this.page.url();
-
       await link.click();
-
-      // Wait until URL changes
       await this.page.waitForURL((url) => url.toString() !== urlBeforeClick, {
         waitUntil: "domcontentloaded",
       });
-
-      // Wait for record page to be ready — any indicator
       await Promise.race([
         this.page
           .locator('div[name="headerMoreButtons"]')
@@ -471,7 +396,7 @@ export class SubNavBarPage extends BasePage {
     });
   }
 
-  //----------------------- Common Methods ------------------------//
+  // Common Methods
   // Method For Repairer Quote Listing Page to open Quote Analysis
   async openQuoteAnalysis() {
     await step("Click Quote Analysis", async () => {

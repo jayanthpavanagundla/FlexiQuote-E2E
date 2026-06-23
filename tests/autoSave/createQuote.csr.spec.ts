@@ -133,7 +133,7 @@ test.describe("Auto Save", () => {
     await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
     await ormMsgPage.openQuotingTab();
     await ormMsgPage.openVehicleSectionsTab();
-    addedParts = await quoteItemsPage.addQuotingItemsByIndex(25);
+    addedParts = await quoteItemsPage.addQuotingItemsByIndex(110);
     await ormMsgPage.openQuotingTab();
     await quotePage.waitForAutoSaveCloudDone();
   });
