@@ -2,16 +2,19 @@ import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
+import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
 import { ORM } from "../../pages/ORM";
 import { epic, step } from "allure-js-commons";
 
 let quoteNumber: string;
+let addedParts: string[] = [];
 // let quoteNumber: string = "10139";
 
 test.describe("Create Quote", () => {
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
+  let quoteItemsPage: QuoteItemsPage;
   let ormMsgPage: ORM;
 
   test.beforeEach(async ({ page }) => {
@@ -21,6 +24,7 @@ test.describe("Create Quote", () => {
     quotePage = new QuotePage(page);
     subNavBarPage = new SubNavBarPage(page);
     ormMsgPage = new ORM(page);
+    quoteItemsPage = new QuoteItemsPage(page);
 
     await page.goto("v2/");
     await expect(page).toHaveURL(/\/v2\/$/);
@@ -77,8 +81,10 @@ test.describe("Create Quote", () => {
     const insurerResult = await quotePage.selectDifferentInsurer();
     const firstNameResult = await quotePage.selectDifferentFirstName();
     const lastNameResult = await quotePage.selectDifferentLastName();
-    // 2. Save and Reload
+    // 2. Save, handle Update Customer modal, verify toast, then reload
     await subNavBarPage.clickSaveButton();
+    await quotePage.handleUpdateCustomerModal();
+    await subNavBarPage.expectToast(`Quote ${quoteNumber} saved`);
     await page.reload();
     // 3. Verify
     await quotePage.verifyEditedQuoteValuesAfterReload({
@@ -96,5 +102,47 @@ test.describe("Create Quote", () => {
       firstName: firstNameResult.newFirstName,
       lastName: lastNameResult.newLastName,
     });
+  });
+
+  test("Add Quoting Items", async ({ page }) => {
+    test.setTimeout(600_000);
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await ormMsgPage.openVehicleSectionsTab();
+    addedParts = await quoteItemsPage.addQuotingItemsByIndex(20);
+    await ormMsgPage.openQuotingTab();
+    await subNavBarPage.clickSaveButton();
+  });
+
+  test("Verify Quoting Item Sequence", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await page.reload({ waitUntil: "networkidle" });
+    await ormMsgPage.openQuotingTab();
+    await quoteItemsPage.verifyPartsOrderAfterReload(addedParts);
+  });
+
+  test("Verify Line Number Sequence", async ({ page }) => {
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await page.reload({ waitUntil: "networkidle" });
+    await ormMsgPage.openQuotingTab();
+    await quoteItemsPage.verifyLineNumberSequence();
+  });
+
+  test("Delete All Parts", async ({ page }) => {
+    test.setTimeout(120_000);
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await ormMsgPage.openQuotingTab();
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
   });
 });

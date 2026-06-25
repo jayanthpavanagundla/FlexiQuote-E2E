@@ -1,10 +1,10 @@
-﻿import { test, expect } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
 import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
 import { ORM } from "../../pages/ORM";
-import { epic, step } from "allure-js-commons";
+import { epic, feature, step } from "allure-js-commons";
 
 let quoteNumber: string;
 let newquoteNumber: string;
@@ -12,7 +12,7 @@ let existingQuoteNumber: string;
 // let newquoteNumber: string = "10300";
 // let quoteNumber: string = "10250";
 
-test.describe("Copy Quote", () => {
+test.describe("Auto Save", () => {
   test.describe.configure({ mode: "serial" });
 
   let navBarPage: NavBarPage;
@@ -22,7 +22,8 @@ test.describe("Copy Quote", () => {
   let quoteItemsPage: QuoteItemsPage;
 
   test.beforeEach(async ({ page }) => {
-    await epic("Copy Quote");
+    await epic("Auto Save");
+    await feature("Copy Quote");
 
     navBarPage = new NavBarPage(page);
     quotePage = new QuotePage(page);
@@ -97,25 +98,20 @@ test.describe("Copy Quote", () => {
     await ormMsgPage.openVehicleSectionsTab();
     await quoteItemsPage.addQuotingItemsByIndex(5);
     await ormMsgPage.openQuotingTab();
-    await subNavBarPage.clickSaveButton();
-    await subNavBarPage.expectToast(`Quote ${newquoteNumber} saved`);
-
+    await quotePage.waitForAutoSaveCloudDone();
     const newQuoteItemsSequence =
       await quoteItemsPage.captureQuotingItemsSequence();
-
     await subNavBarPage.clickEllipisBtn();
     await subNavBarPage.selectCopyQuote();
     const targetQuoteNo = String(Number(newquoteNumber) - 7);
     await subNavBarPage.copyToExistingQuote(targetQuoteNo);
-    await subNavBarPage.expectToast(
-      "Copy quote successful. Please remember to save quote.",
-    );
-    await subNavBarPage.clickSaveButton();
-    await subNavBarPage.expectToast(`Quote ${existingQuoteNumber} saved`);
+    await subNavBarPage.expectToast("Copy quote successful.");
     await ormMsgPage.openQuotingTab();
     await quoteItemsPage.verifyCopytoExistingItemsSequence(
       newQuoteItemsSequence,
     );
+    await quoteItemsPage.deleteAllParts();
+    await quotePage.waitForAutoSaveCloudDone();
     await ormMsgPage.clickHeaderTab();
     existingQuoteNumber = await navBarPage.extractAndStoreQuoteNumber();
     await step(`"${existingQuoteNumber}" === "${targetQuoteNo}"`, async () => {

@@ -67,6 +67,7 @@ export class QuotePage extends BasePage {
   addressInput: Locator;
   addressSelect: Locator;
   insurerDropdown: Locator;
+  insurerInput: Locator;
   selectedInsurer: Locator;
   claimNumberInput: Locator;
   saveCreate: Locator;
@@ -173,6 +174,7 @@ export class QuotePage extends BasePage {
 
     // Insurance
     this.insurerDropdown = page.locator(".multiselect__select");
+    this.insurerInput = page.locator(".multiselect__input");
     this.selectedInsurer = page.locator(".multiselect__single");
     this.claimNumberInput = page.getByRole("textbox", { name: "Claim Number" });
 
@@ -580,6 +582,27 @@ export class QuotePage extends BasePage {
   }
 
   //--------------------------- INSURER DETAILS 03 ----------------------------//
+  async selectInsurer(primary: string) {
+    await step(`Select Insurer "${primary}"`, async () => {
+      // Open the dropdown
+      await this.insurerDropdown.click();
+      // Type into the search input to filter results
+      await this.insurerInput.fill(primary);
+      // Wait for the insurer data to load, then click the matching option
+      await Promise.all([
+        this.page.waitForResponse(
+          (r) =>
+            r.url().includes("/UniqApi/v1/insurers/") &&
+            r.request().method() === "GET" &&
+            r.status() === 200,
+        ),
+        this.page
+          .locator(".multiselect__option span", { hasText: primary })
+          .first()
+          .click(),
+      ]);
+    });
+  }
   async selectRandomInsurer(exclude?: string): Promise<string> {
     let insurerName = "";
     await step("Select random insurer", async () => {

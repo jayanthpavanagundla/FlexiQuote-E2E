@@ -102,6 +102,9 @@ export class QuoteItemsPage {
   rateInputs: Locator;
   itemDescSpan: Locator;
 
+  // VEHICLE SECTION SEARCH
+  vehicleSearchFilter: Locator;
+
   constructor(page: Page) {
     this.page = page;
 
@@ -244,6 +247,11 @@ export class QuoteItemsPage {
 
     // NTAR / PAINT LOADING
     this.paintLoadingPrefix = "Paint Loading,";
+
+    // VEHICLE SECTION SEARCH
+    this.vehicleSearchFilter = page.getByRole("textbox", {
+      name: "Start typing to filter",
+    });
   }
 
   // NTAR / BUTTERFLY ITEM TYPE
@@ -522,7 +530,7 @@ export class QuoteItemsPage {
       },
     );
   }
-  
+
   // CAPTURE CURRENT PARTS ORDER (e.g. on source quote, before copying to an existing quote)
   async captureQuotingItemsSequence(): Promise<string[]> {
     return await step("Capture quoting items sequence", async () => {
@@ -646,10 +654,63 @@ export class QuoteItemsPage {
     );
   }
 
+  // CHANGE ALL PARTS CONDITION FROM NEW TO USED/EXCHANGE
+  async changePartsToUsedOrExchange(
+    condition: "USED" | "EXCHANGE",
+  ): Promise<{ description: string; condition: "USED" | "EXCHANGE" }[]> {
+    return await step(
+      `Change all parts condition from New to ${condition}`,
+      async () => {
+        await this.partsSection.scrollIntoViewIfNeeded();
+        const visibleRows = this.partsSection.locator(
+          ".item-row-quote-builder-parts:not(.is-hidden)",
+        );
+        await expect(visibleRows.first()).toBeVisible({ timeout: 10000 });
+        const rowCount = await visibleRows.count();
+        const value = condition === "USED" ? "U" : "X";
+        const results: { description: string; condition: "USED" | "EXCHANGE" }[] =
+          [];
+        for (let i = 0; i < rowCount; i++) {
+          const row = visibleRows.nth(i);
+          // Open/editing rows render the description as an input inside the
+          // "-itemDesc" container; collapsed rows render it as plain text.
+          const descContainer = row.locator('[id$="-itemDesc"]').first();
+          const descInput = descContainer.locator("input");
+          const description = (
+            (await descInput.count()) > 0
+              ? await descInput.first().inputValue()
+              : (await descContainer.textContent()) ?? ""
+          ).trim();
+          await row.locator("select").selectOption(value);
+          results.push({ description, condition });
+          await step(
+            `Row ${i + 1} "${description}": set condition to ${condition}`,
+            async () => {},
+          );
+        }
+        return results;
+      },
+    );
+  }
+
   _escape(str: string) {
     return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
   _exact(text: string) {
     return new RegExp(`^\\s*${this._escape(text)}\\s*$`);
+  }
+
+  // NTAR Methods
+  async selectVehiclePart(partName: string) {
+    await this.vehicleSearchFilter.click();
+    await this.vehicleSearchFilter.pressSequentially(partName);
+    const partRow = this.page
+      .locator("tr")
+      .filter({
+        hasText: partName.toUpperCase(),
+      })
+      .first();
+    await expect(partRow).toBeVisible();
+    await partRow.locator("div.butterfly-item-values").click();
   }
 }
