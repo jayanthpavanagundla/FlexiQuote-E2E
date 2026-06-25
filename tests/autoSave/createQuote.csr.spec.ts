@@ -4,7 +4,7 @@ import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
 import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
 import { ORM } from "../../pages/ORM";
-import { epic, step } from "allure-js-commons";
+import { epic, feature, step } from "allure-js-commons";
 
 let quoteNumber: string;
 // let quoteNumber: string = "10250";
@@ -39,6 +39,7 @@ test.describe("Auto Save", () => {
 
   test.beforeEach(async ({ page }) => {
     await epic("Auto Save");
+    await feature("Create Quote");
 
     navBarPage = new NavBarPage(page);
     quotePage = new QuotePage(page);
@@ -133,7 +134,7 @@ test.describe("Auto Save", () => {
     await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
     await ormMsgPage.openQuotingTab();
     await ormMsgPage.openVehicleSectionsTab();
-    addedParts = await quoteItemsPage.addQuotingItemsByIndex(110);
+    addedParts = await quoteItemsPage.addQuotingItemsByIndex(20);
     await ormMsgPage.openQuotingTab();
     await quotePage.waitForAutoSaveCloudDone();
   });

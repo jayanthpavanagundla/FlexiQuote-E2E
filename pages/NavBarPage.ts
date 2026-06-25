@@ -220,7 +220,9 @@ export class NavBarPage extends BasePage {
       "div.quote-info span.is-size-4.has-text-weight-bold",
     );
 
-    this.companyOnboarding = page.locator("a").filter({ hasText: "Company Onboarding" });
+    this.companyOnboarding = page
+      .locator("a")
+      .filter({ hasText: "Company Onboarding" });
     this.companySetting = page.getByRole("link", { name: "Company Setting" });
     this.autoSaveCheckbox = page.getByRole("checkbox").nth(2);
   }
@@ -490,6 +492,7 @@ export class NavBarPage extends BasePage {
       if (!quoteNumber) {
         throw new Error("Quote number was not found or text is empty");
       }
+      await step(`Extracted Quote Number: ${quoteNumber}`, async () => {});
       return quoteNumber;
     });
   }
