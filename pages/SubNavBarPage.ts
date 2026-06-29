@@ -23,6 +23,7 @@ export class SubNavBarPage extends BasePage {
   existingQuoteNumber: Locator;
   overwriteExistingQuote: Locator;
   copyQuoteBtn: Locator;
+  saveAndContinue: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -39,6 +40,9 @@ export class SubNavBarPage extends BasePage {
     this.existingQuoteNumber = page.getByRole("textbox", { name: "Quote No." });
     this.overwriteExistingQuote = page.locator("#chk-overwrite-quote");
     this.copyQuoteBtn = page.getByRole("button", { name: "Copy" });
+    this.saveAndContinue = page.getByRole("button", {
+      name: "Save & Continue",
+    });
 
     // Repairer Quote Listing Page Locators
     this.quoteAnalysis = page
@@ -249,6 +253,24 @@ export class SubNavBarPage extends BasePage {
   async clickSaveButton() {
     await step("Click Save button", async () => {
       await this.saveButton.click();
+    });
+  }
+
+  // Cliking Save And Continue Button Method
+  async clickSaveAndContinueButton() {
+    await step("Click Save button", async () => {
+      await this.saveAndContinue.click();
+    });
+  }
+
+  // Click Save & Continue only if visible, then verify toast; skip both if not visible
+  async clickSaveAndContinueIfVisible(toastMessage: string): Promise<void> {
+    await step("Click Save & Continue if visible", async () => {
+      const visible = await this.saveAndContinue.isVisible();
+      if (visible) {
+        await this.saveAndContinue.click();
+        await expect(this.getToast(toastMessage)).toBeVisible();
+      }
     });
   }
 

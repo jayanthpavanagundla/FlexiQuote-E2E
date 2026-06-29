@@ -82,6 +82,7 @@ test.describe("Auto Save", () => {
     await ormMsgPage.enterEstimateEndDate();
     // Save Quote
     await subNavBarPage.clickCreateButton();
+    await subNavBarPage.expectToast(`New quote ${quoteNumber} added`);
   });
 
   test("Edit and Verify Quote", async ({ page }) => {

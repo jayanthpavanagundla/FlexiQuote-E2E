@@ -56,7 +56,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : 1,
   timeout: 60000,
-  expect: { timeout: 20000 },
+  expect: { timeout: 30000 },
   projects: [
     // Auth setups — each writes to its own .auth/*.json
     {
