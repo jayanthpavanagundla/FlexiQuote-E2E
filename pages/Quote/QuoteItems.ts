@@ -15,6 +15,7 @@ export class QuoteItemsPage {
   page: Page;
   editableField: (id: string) => Locator;
   paintLoadingPrefix: string;
+  paintConsumablesText: string;
 
   // LOGIN
   username: Locator;
@@ -96,6 +97,7 @@ export class QuoteItemsPage {
   labourRows: Locator;
   partsSection: Locator;
   partsRows: Locator;
+  paintItemRows: Locator;
   partsType: Locator;
   categoryTabs: Locator;
   itemRows: Locator;
@@ -234,6 +236,9 @@ export class QuoteItemsPage {
     );
     this.partsSection = page.locator(".quote-items-section.parts");
     this.partsRows = this.partsSection.locator(".item-row-quote-builder-parts");
+    this.paintItemRows = page.locator(
+      ".item-row-quote-builder-labour.type-PAINT:not(.is-hidden)",
+    );
     this.partsType = page.locator("//div[@class='select']//select");
     this.editableField = (id: string) => page.locator(`#${id}`);
     this.categoryTabs = page.locator(".tabs li");
@@ -247,6 +252,7 @@ export class QuoteItemsPage {
 
     // NTAR / PAINT LOADING
     this.paintLoadingPrefix = "Paint Loading,";
+    this.paintConsumablesText = "Paint Consumables. Per Paint hour";
 
     // VEHICLE SECTION SEARCH
     this.vehicleSearchFilter = page.getByRole("textbox", {
@@ -278,6 +284,99 @@ export class QuoteItemsPage {
     const element = this.getPaintLoadingItem(itemName);
     await expect(element).toBeVisible();
     await element.click();
+  }
+
+  // CONSUMABLES (NTAR) — USED/EXCHANGE auto-adds paint loading + misc;
+  // NEW must NOT add them. Both directions are verified per part.
+  async expectConsumablesAdded(
+    changedParts: {
+      description: string;
+      condition: "USED" | "EXCHANGE" | "NEW";
+    }[],
+    stepLabel: string = "Verify Paint and Misc consumables added",
+  ): Promise<void> {
+    const qualifying = changedParts.filter(
+      (p) => p.condition === "USED" || p.condition === "EXCHANGE",
+    );
+    const newParts = changedParts.filter((p) => p.condition === "NEW");
+
+    await step(stepLabel, async () => {
+      for (const { description } of qualifying) {
+        await step(
+          `Paint consumable "${this.paintLoadingPrefix} ${description}" added to Paint`,
+          async () => {
+            await this.expectPaintLoadingVisible(description);
+          },
+        );
+      }
+      for (const { description } of newParts) {
+        await step(
+          `Paint consumable "${this.paintLoadingPrefix} ${description}" NOT added for NEW part`,
+          async () => {
+            await expect(this.getPaintLoadingItem(description)).toBeHidden();
+          },
+        );
+      }
+      if (qualifying.length > 0) {
+        await step(
+          `Misc consumable "${this.paintConsumablesText}" added to Misc`,
+          async () => {
+            await expect(
+              this.page
+                .getByText(this.paintConsumablesText, { exact: true })
+                .last(),
+            ).toBeVisible();
+          },
+        );
+      } else {
+        await step(
+          `Misc consumable "${this.paintConsumablesText}" NOT added (all parts are NEW)`,
+          async () => {
+            await expect(
+              this.page
+                .getByText(this.paintConsumablesText, { exact: true })
+                .last(),
+            ).toBeHidden();
+          },
+        );
+      }
+    });
+  }
+
+  // CONSUMABLES (NTAR) — deleting the "Paint Loading" item also removes the
+  // auto-added Paint consumable items under Misc.
+  async expectConsumablesRemoved(
+    changedParts: {
+      description: string;
+      condition: "USED" | "EXCHANGE" | "NEW";
+    }[],
+    stepLabel: string = "Verify Paint and Misc consumables removed",
+  ): Promise<void> {
+    const qualifying = changedParts.filter(
+      (p) => p.condition === "USED" || p.condition === "EXCHANGE",
+    );
+    await step(stepLabel, async () => {
+      for (const { description } of qualifying) {
+        await step(
+          `Paint consumable "${this.paintLoadingPrefix} ${description}" deleted from Paint`,
+          async () => {
+            await expect(this.getPaintLoadingItem(description)).toBeHidden();
+          },
+        );
+      }
+      if (qualifying.length > 0) {
+        await step(
+          `Misc consumable "${this.paintConsumablesText}" deleted from Misc`,
+          async () => {
+            await expect(
+              this.page
+                .getByText(this.paintConsumablesText, { exact: true })
+                .last(),
+            ).toBeHidden();
+          },
+        );
+      }
+    });
   }
 
   async fillRateAndHours({
@@ -654,34 +753,80 @@ export class QuoteItemsPage {
     );
   }
 
+  // DELETE ALL PAINT ITEMS AND VERIFY COUNT REACHES ZERO (NTAR)
+  async deleteAllPaintItems(): Promise<void> {
+    await step(
+      "Delete all Paint rows and verify Paint count shows (0)",
+      async () => {
+        const visibleRows = this.paintItemRows;
+        await expect(visibleRows.first()).toBeVisible({ timeout: 30000 });
+
+        let remaining = await visibleRows.count();
+        while (remaining > 0) {
+          const firstRow = visibleRows.first();
+          await firstRow.scrollIntoViewIfNeeded();
+
+          const deleteBtn = firstRow.locator('button[data-tooltip="Delete"]');
+          await deleteBtn.hover({ force: true });
+          await deleteBtn.click();
+
+          await this.page.waitForTimeout(300);
+          remaining = await visibleRows.count();
+        }
+        await expect(visibleRows).toHaveCount(0);
+      },
+    );
+  }
+
   // CHANGE ALL PARTS CONDITION FROM NEW TO USED/EXCHANGE
   async changePartsToUsedOrExchange(
-    condition: "USED" | "EXCHANGE",
-  ): Promise<{ description: string; condition: "USED" | "EXCHANGE" }[]> {
+    condition: "USED" | "EXCHANGE" | "NEW",
+  ): Promise<
+    { description: string; condition: "USED" | "EXCHANGE" | "NEW" }[]
+  > {
     return await step(
-      `Change all parts condition from New to ${condition}`,
+      `Change all parts condition to ${condition}`,
       async () => {
         await this.partsSection.scrollIntoViewIfNeeded();
         const visibleRows = this.partsSection.locator(
           ".item-row-quote-builder-parts:not(.is-hidden)",
         );
-        await expect(visibleRows.first()).toBeVisible({ timeout: 10000 });
+        await visibleRows.first().scrollIntoViewIfNeeded();
         const rowCount = await visibleRows.count();
-        const value = condition === "USED" ? "U" : "X";
-        const results: { description: string; condition: "USED" | "EXCHANGE" }[] =
-          [];
+
+        // Map condition to select value
+        const conditionMap: {
+          [key in "USED" | "EXCHANGE" | "NEW"]: string;
+        } = {
+          USED: "U",
+          EXCHANGE: "X",
+          NEW: "--",
+        };
+        const value = conditionMap[condition];
+
+        const results: {
+          description: string;
+          condition: "USED" | "EXCHANGE" | "NEW";
+        }[] = [];
+
         for (let i = 0; i < rowCount; i++) {
           const row = visibleRows.nth(i);
-          // Open/editing rows render the description as an input inside the
-          // "-itemDesc" container; collapsed rows render it as plain text.
+
+          // Click the row to open it for editing
+          await row.click();
+
+          // Get description
           const descContainer = row.locator('[id$="-itemDesc"]').first();
           const descInput = descContainer.locator("input");
           const description = (
             (await descInput.count()) > 0
               ? await descInput.first().inputValue()
-              : (await descContainer.textContent()) ?? ""
+              : ((await descContainer.textContent()) ?? "")
           ).trim();
+
+          // Select the option
           await row.locator("select").selectOption(value);
+
           results.push({ description, condition });
           await step(
             `Row ${i + 1} "${description}": set condition to ${condition}`,
@@ -703,11 +848,14 @@ export class QuoteItemsPage {
   // NTAR Methods
   async selectVehiclePart(partName: string) {
     await this.vehicleSearchFilter.click();
+    await this.vehicleSearchFilter.clear();
     await this.vehicleSearchFilter.pressSequentially(partName);
     const partRow = this.page
-      .locator("tr")
+      .locator("tbody tr")
       .filter({
-        hasText: partName.toUpperCase(),
+        has: this.page.locator("td", {
+          hasText: this._exact(partName.toUpperCase()),
+        }),
       })
       .first();
     await expect(partRow).toBeVisible();
