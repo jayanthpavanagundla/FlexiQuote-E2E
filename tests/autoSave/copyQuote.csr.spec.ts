@@ -3,6 +3,7 @@ import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
 import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
+import { QuoteNavBar } from "../../pages/Quote/QuoteNavBar";
 import { ORM } from "../../pages/ORM";
 import { epic, feature, step } from "allure-js-commons";
 
@@ -18,6 +19,7 @@ test.describe("Auto Save", () => {
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
+  let quoteNavBar: QuoteNavBar;
   let ormMsgPage: ORM;
   let quoteItemsPage: QuoteItemsPage;
 
@@ -26,7 +28,8 @@ test.describe("Auto Save", () => {
     await feature("Copy Quote");
 
     navBarPage = new NavBarPage(page);
-    quotePage = new QuotePage(page);
+    quotePage = new QuotePage(page);  
+    quoteNavBar = new QuoteNavBar(page);
     subNavBarPage = new SubNavBarPage(page);
     ormMsgPage = new ORM(page);
     quoteItemsPage = new QuoteItemsPage(page);
@@ -60,10 +63,10 @@ test.describe("Auto Save", () => {
     // Section 03 — Insurance Details
     await quotePage.selectRandomInsurer();
     await quotePage.fillClaimNumber();
-    await ormMsgPage.enterEstimator("John Doe");
+    await quotePage.enterEstimator("John Doe");
     // Section 04 — Key Dates
-    await ormMsgPage.enterEstimateStartDate();
-    await ormMsgPage.enterEstimateEndDate();
+    await quotePage.enterEstimateStartDate();
+    await quotePage.enterEstimateEndDate();
     // Save Quote
     await subNavBarPage.clickCreateButton();
     await subNavBarPage.expectToast(`New quote ${quoteNumber} added`);
@@ -72,7 +75,7 @@ test.describe("Auto Save", () => {
   test("Copy Quote to New Quote", async ({}) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
     const originalQuoteData = await quotePage.captureQuoteFieldValues();
     await subNavBarPage.clickEllipisBtn();
     await subNavBarPage.selectCopyQuote();
@@ -94,11 +97,11 @@ test.describe("Auto Save", () => {
   test("Copy Quote to Existing Quote", async ({}) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(newquoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(newquoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await quoteItemsPage.addQuotingItemsByIndex(5);
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await quotePage.waitForAutoSaveCloudDone();
     const newQuoteItemsSequence =
       await quoteItemsPage.captureQuotingItemsSequence();
@@ -107,13 +110,13 @@ test.describe("Auto Save", () => {
     const targetQuoteNo = String(Number(newquoteNumber) - 7);
     await subNavBarPage.copyToExistingQuote(targetQuoteNo);
     await subNavBarPage.expectToast("Copy quote successful.");
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await quoteItemsPage.verifyCopytoExistingItemsSequence(
       newQuoteItemsSequence,
     );
     await quoteItemsPage.deleteAllParts();
     await quotePage.waitForAutoSaveCloudDone();
-    await ormMsgPage.clickHeaderTab();
+    await quoteNavBar.goToHeaderTab();
     existingQuoteNumber = await navBarPage.extractAndStoreQuoteNumber();
     await step(`"${existingQuoteNumber}" === "${targetQuoteNo}"`, async () => {
       expect(existingQuoteNumber).toBe(targetQuoteNo);

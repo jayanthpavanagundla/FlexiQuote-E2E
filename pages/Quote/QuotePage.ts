@@ -76,6 +76,13 @@ export class QuotePage extends BasePage {
   makeModelTitle: Locator;
   cloudDoneIcon: Locator;
   syncIcon: Locator;
+  estimateStartDateInput: Locator;
+  estimateEndDateInput: Locator;
+  searchInput: Locator;
+  filterButton: Locator;
+  estimatorInput: Locator;
+  vehicleSectionsTab: Locator;
+  manualSectionsTab: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -193,6 +200,25 @@ export class QuotePage extends BasePage {
     this.cloudDoneIcon = page
       .locator("span.material-symbols-rounded", { hasText: "cloud_done" })
       .first();
+
+    this.estimateStartDateInput = this.page
+      .locator('input[placeholder="Job Start Date"]')
+      .first();
+    this.estimateEndDateInput = this.page
+      .locator('input[placeholder="Job End Date"]')
+      .first();
+
+    this.searchInput = this.page.locator('input[placeholder="Search..."]');
+    this.filterButton = this.page.getByRole("button", { name: "Filter" });
+
+    this.estimatorInput = this.page.locator('input[placeholder="Quoter"]');
+
+    this.vehicleSectionsTab = this.page.locator("li", {
+      hasText: "Vehicle Sections",
+    });
+    this.manualSectionsTab = this.page.locator("li", {
+      hasText: "Manual Quote",
+    });
   }
 
   // Handle AutoSave Sync
@@ -205,6 +231,24 @@ export class QuotePage extends BasePage {
       }
       await expect(this.syncIcon).toBeHidden();
       await expect(this.cloudDoneIcon).toBeVisible();
+    });
+  }
+
+  async enterEstimator(estimator: string): Promise<void> {
+    await step(`Enter Estimator: ${estimator}`, async () => {
+      await this.estimatorInput.fill(estimator);
+    });
+  }
+
+  async openVehicleSectionsTab(): Promise<void> {
+    await step("Click Vehicle Sections tab", async () => {
+      await this.vehicleSectionsTab.click();
+    });
+  }
+
+  async openManualSectionsTab(): Promise<void> {
+    await step("Click Manual Sections tab", async () => {
+      await this.manualSectionsTab.click();
     });
   }
 
@@ -233,6 +277,41 @@ export class QuotePage extends BasePage {
         await expect(modal).not.toBeVisible();
       },
     );
+  }
+
+  async enterEstimateStartDate(): Promise<void> {
+    await step("Enter Estimate Start Date as tomorrow", async () => {
+      const startDate = getFutureDateTime(1);
+      await this.estimateStartDateInput.fill(startDate);
+      await this.estimateStartDateInput.press("Tab");
+    });
+  }
+
+  async enterEstimateEndDate(): Promise<void> {
+    await step("Enter Estimate End Date as 3 days from today", async () => {
+      const endDate = getFutureDateTime(3);
+      await this.estimateEndDateInput.fill(endDate);
+      await this.estimateEndDateInput.press("Tab");
+    });
+  }
+
+  async searchAndOpenQuoteByNumber(quoteNumber: string): Promise<void> {
+    await step(`Search and open Quote No: ${quoteNumber}`, async () => {
+      await this.searchInput.fill(quoteNumber);
+      await expect(this.searchInput).toHaveValue(quoteNumber);
+      await this.filterButton.click();
+      const quoteLink = this.page.locator(
+        "table:visible tbody tr td:first-child a[href]",
+        { hasText: new RegExp(`^\\s*${quoteNumber}\\s*$`) },
+      );
+      await expect(quoteLink).toBeVisible({ timeout: 30000 });
+      await Promise.all([
+        this.page.waitForURL(/\/v2\/quotes\//, {
+          waitUntil: "domcontentloaded",
+        }),
+        quoteLink.click(),
+      ]);
+    });
   }
 
   //--------------------------- COMMON METHODS ----------------------------//
@@ -679,7 +758,8 @@ export class QuotePage extends BasePage {
         ),
         options.nth(picked.idx).click(),
       ]);
-      // 7. Read back confirmed selection from the multiselect display
+      // 7. Wait for the multiselect label to update, then read back the selection
+      await expect(this.selectedInsurer).not.toHaveText(oldInsurer);
       const newInsurer = (
         (await this.selectedInsurer.textContent()) ?? ""
       ).trim();
@@ -770,13 +850,10 @@ export class QuotePage extends BasePage {
         .soft(this.paint2, "Verify Paint Code after reload")
         .toHaveValue(expected.paintCode);
 
-      // 11. Insurer — displayed in .multiselect__single, not a <select> element
-      const actualInsurer = (
-        (await this.selectedInsurer.textContent()) ?? ""
-      ).trim();
-      expect
-        .soft(actualInsurer, "Verify Insurer after reload")
-        .toBe(expected.insurer);
+      // 11. Insurer
+      await expect
+        .soft(this.selectedInsurer, "Verify Insurer after reload")
+        .toHaveText(expected.insurer);
 
       // 12. First Name
       await expect
@@ -849,6 +926,27 @@ export class QuotePage extends BasePage {
         lastName,
         insurer,
       };
+    });
+  }
+
+  async captureCustomerAndInsurer(): Promise<{
+    firstName: string;
+    lastName: string;
+    insurer: string;
+  }> {
+    return await step("Capture customer + insurer from UI", async () => {
+      await this.page.waitForLoadState("networkidle");
+      await expect(this.firstName).not.toHaveValue("");
+      await expect(this.lastName).not.toHaveValue("");
+      await expect(this.selectedInsurer).not.toBeEmpty();
+
+      const firstName = (await this.firstName.inputValue()).trim();
+      const lastName = (await this.lastName.inputValue()).trim();
+      const insurer = ((await this.selectedInsurer.textContent()) ?? "").trim();
+      await step(`Captured First Name: ${firstName}`, async () => {});
+      await step(`Captured Last Name: ${lastName}`, async () => {});
+      await step(`Captured Insurer: ${insurer}`, async () => {});
+      return { firstName, lastName, insurer };
     });
   }
 

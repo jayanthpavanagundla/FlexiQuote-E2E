@@ -30,6 +30,12 @@ export class QuoteNavBar extends BasePage {
   ratesTab: Locator;
   annotationsTab: Locator;
 
+  // AH-ON Invoice
+  invoiceCheckBox: Locator;
+  invoiceRaiseButton: Locator;
+  invoicePrintPreview: Locator;
+  viewAHONInvoice: Locator;
+
   constructor(page: Page) {
     super(page);
 
@@ -61,19 +67,35 @@ export class QuoteNavBar extends BasePage {
     this.copyQuoteOption = page.getByText("Copy Quote");
 
     // TABS (SECOND ROW)
-    this.headerTab = page.getByText("Header");
+    this.headerTab = page.getByText("Header").first();
     this.quotingTab = page.getByText("Quoting");
     this.partsTab = page.getByText("Parts");
     this.imagesTab = page.getByText("Images");
-    this.assessmentsTab = page.getByText("Assessments");
+    this.assessmentsTab = page.getByRole("link", {
+      name: "verified_user Assessments",
+    });
     this.summaryTab = page.getByText("Summary");
-    this.invoiceTab = page.getByText("Invoice");
+    this.invoiceTab = page.getByRole("link", {
+      name: "receipt_long Invoice",
+    });
     this.excessTab = page.getByText("Excess");
     this.docsTab = page.getByText("Docs");
     this.commsTab = page.getByText("Comms");
     this.remarksTab = page.getByText("Remarks");
     this.ratesTab = page.getByText("Rates & Markups");
     this.annotationsTab = page.getByText("Annotations");
+
+    // AH-ON Invoice
+    this.invoiceCheckBox = page
+      .locator("tbody tr td .pretty div.state")
+      .first();
+    this.invoiceRaiseButton = page.getByRole("button", {
+      name: "󰗇 Raise Invoice",
+    });
+    this.invoicePrintPreview = page.getByRole("button", {
+      name: "󰐪 Print Invoice",
+    });
+    this.viewAHONInvoice = page.locator('button[data-tooltip="View Details"]');
   }
 
   // HEADER METHODS
@@ -133,42 +155,88 @@ export class QuoteNavBar extends BasePage {
   // TAB NAVIGATION METHODS
 
   async goToHeaderTab() {
-    await this.headerTab.click();
+    await step("Click Header tab", async () => {
+      await this.headerTab.click();
+    });
   }
   async goToQuotingTab() {
-    await this.quotingTab.click();
+    await step("Click Quoting tab", async () => {
+      await this.quotingTab.click();
+    });
   }
   async goToPartsTab() {
-    await this.partsTab.click();
+    await step("Click Parts tab", async () => {
+      await this.partsTab.click();
+    });
   }
   async goToImagesTab() {
-    await this.imagesTab.click();
+    await step("Click Images tab", async () => {
+      await this.imagesTab.click();
+    });
   }
   async goToAssessmentsTab() {
-    await this.assessmentsTab.click();
+    await step("Click Assessments tab", async () => {
+      await this.assessmentsTab.click();
+    });
   }
   async goToSummaryTab() {
-    await this.summaryTab.click();
+    await step("Click Summary tab", async () => {
+      await this.summaryTab.click();
+    });
   }
   async goToInvoiceTab() {
-    await this.invoiceTab.click();
+    await step("Click Invoice tab", async () => {
+      await this.invoiceTab.click();
+    });
   }
   async goToExcessTab() {
-    await this.excessTab.click();
+    await step("Click Excess tab", async () => {
+      await this.excessTab.click();
+    });
   }
   async goToDocsTab() {
-    await this.docsTab.click();
+    await step("Click Docs tab", async () => {
+      await this.docsTab.click();
+    });
   }
   async goToCommsTab() {
-    await this.commsTab.click();
+    await step("Click Comms tab", async () => {
+      await this.commsTab.click();
+    });
   }
   async goToRemarksTab() {
-    await this.remarksTab.click();
+    await step("Click Remarks tab", async () => {
+      await this.remarksTab.click();
+    });
   }
   async goToRatesTab() {
-    await this.ratesTab.click();
+    await step("Click Rates tab", async () => {
+      await this.ratesTab.click();
+    });
   }
   async goToAnnotationsTab() {
-    await this.annotationsTab.click();
+    await step("Click Annotations tab", async () => {
+      await this.annotationsTab.click();
+    });
+  }
+
+  // AH-ON Invoice Creation
+  async invoiceAHONCreation() {
+    await step("Click Invoice Checkbox", async () => {
+      await this.invoiceCheckBox.click({ force: true });
+    });
+    await step("Click Invoice Raise Button", async () => {
+      await this.invoiceRaiseButton.click();
+    });
+  }
+  async invoiceAHONView() {
+    await step("Click View AH-ON Invoice Button", async () => {
+      await this.viewAHONInvoice.click();
+    });
+  }
+  async invoiceAHONPrintPreview() {
+    await step("Click Invoice Print Preview Button", async () => {
+      await this.invoicePrintPreview.click();
+    });
   }
 }

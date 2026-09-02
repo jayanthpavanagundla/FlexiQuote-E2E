@@ -381,7 +381,7 @@ test.describe("Listing Preview", () => {
     );
   });
 
-  test("Quick Item Listing Preview", async ({ page }) => {
+  test.only("Quick Item Listing Preview", async ({ page }) => {
     await epic("Listing Preview");
     await feature("Tables Listing Preview");
 

@@ -3,19 +3,18 @@ import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
 import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
-import { ORM } from "../../pages/ORM";
+import { QuoteNavBar } from "../../pages/Quote/QuoteNavBar";
 import { epic, step } from "allure-js-commons";
 
 let quoteNumber: string;
 let addedParts: string[] = [];
-// let quoteNumber: string = "10139";
 
 test.describe("Create Quote", () => {
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
   let quoteItemsPage: QuoteItemsPage;
-  let ormMsgPage: ORM;
+  let quoteNavBar: QuoteNavBar;
 
   test.beforeEach(async ({ page }) => {
     await epic("Auto Save");
@@ -23,8 +22,8 @@ test.describe("Create Quote", () => {
     navBarPage = new NavBarPage(page);
     quotePage = new QuotePage(page);
     subNavBarPage = new SubNavBarPage(page);
-    ormMsgPage = new ORM(page);
     quoteItemsPage = new QuoteItemsPage(page);
+    quoteNavBar = new QuoteNavBar(page);
 
     await page.goto("v2/");
     await expect(page).toHaveURL(/\/v2\/$/);
@@ -55,10 +54,10 @@ test.describe("Create Quote", () => {
     // Section 03 — Insurance Details
     await quotePage.selectRandomInsurer();
     await quotePage.fillClaimNumber();
-    await ormMsgPage.enterEstimator("John Doe");
+    await quotePage.enterEstimator("John Doe");
     // Section 04 — Key Dates
-    await ormMsgPage.enterEstimateStartDate();
-    await ormMsgPage.enterEstimateEndDate();
+    await quotePage.enterEstimateStartDate();
+    await quotePage.enterEstimateEndDate();
     // Save Quote
     await subNavBarPage.clickCreateButton();
   });
@@ -66,7 +65,7 @@ test.describe("Create Quote", () => {
   test("Edit Quote and Verify", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
     // 1. Change values — each method removes old, fills new, returns what was filled
     const transmissionResult = await quotePage.selectDifferentTransmission();
     const paintGroupResult = await quotePage.selectDifferentPaintGroup();
@@ -78,15 +77,17 @@ test.describe("Create Quote", () => {
     const engineSize = await quotePage.fillEngineSize();
     const trimCode = await quotePage.fillTrimCode();
     const paintCode = await quotePage.fillPaintCode();
-    const insurerResult = await quotePage.selectDifferentInsurer();
-    const firstNameResult = await quotePage.selectDifferentFirstName();
-    const lastNameResult = await quotePage.selectDifferentLastName();
-    // 2. Save, handle Update Customer modal, verify toast, then reload
+    await quotePage.selectDifferentInsurer();
+    await quotePage.selectDifferentFirstName();
+    await quotePage.selectDifferentLastName();
+    // 2. Save, handle the (random) Update Customer modal, verify toast
     await subNavBarPage.clickSaveButton();
     await quotePage.handleUpdateCustomerModal();
     await subNavBarPage.expectToast(`Quote ${quoteNumber} saved`);
+    // 3. Capture the actual persisted customer + insurer from the UI — the random
+    //    modal choice decides these — then verify they survive a hard reload.
+    const persisted = await quotePage.captureCustomerAndInsurer();
     await page.reload();
-    // 3. Verify
     await quotePage.verifyEditedQuoteValuesAfterReload({
       transmission: transmissionResult.selectedTransmission,
       paintGroup: paintGroupResult.selectedPaintGroup,
@@ -98,9 +99,9 @@ test.describe("Create Quote", () => {
       engineSize,
       trimCode,
       paintCode,
-      insurer: insurerResult.selectedInsurer,
-      firstName: firstNameResult.newFirstName,
-      lastName: lastNameResult.newLastName,
+      insurer: persisted.insurer,
+      firstName: persisted.firstName,
+      lastName: persisted.lastName,
     });
   });
 
@@ -108,31 +109,31 @@ test.describe("Create Quote", () => {
     test.setTimeout(600_000);
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     addedParts = await quoteItemsPage.addQuotingItemsByIndex(20);
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await subNavBarPage.clickSaveButton();
   });
 
   test("Verify Quoting Item Sequence", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
     await page.reload({ waitUntil: "networkidle" });
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await quoteItemsPage.verifyPartsOrderAfterReload(addedParts);
   });
 
   test("Verify Line Number Sequence", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
     await page.reload({ waitUntil: "networkidle" });
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await quoteItemsPage.verifyLineNumberSequence();
   });
 
@@ -140,8 +141,8 @@ test.describe("Create Quote", () => {
     test.setTimeout(120_000);
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
     await quoteItemsPage.deleteAllParts();
     await subNavBarPage.clickSaveButton();
   });

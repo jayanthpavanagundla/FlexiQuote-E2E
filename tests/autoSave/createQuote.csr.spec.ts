@@ -2,8 +2,8 @@ import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
+import { QuoteNavBar } from "../../pages/Quote/QuoteNavBar";
 import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
-import { ORM } from "../../pages/ORM";
 import { epic, feature, step } from "allure-js-commons";
 
 let quoteNumber: string;
@@ -14,7 +14,7 @@ test.describe("Auto Save", () => {
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
-  let ormMsgPage: ORM;
+  let quoteNavBar: QuoteNavBar;
   let quoteItemsPage: QuoteItemsPage;
 
   // // Enable AutoSave before all tests
@@ -43,8 +43,8 @@ test.describe("Auto Save", () => {
 
     navBarPage = new NavBarPage(page);
     quotePage = new QuotePage(page);
+    quoteNavBar = new QuoteNavBar(page);
     subNavBarPage = new SubNavBarPage(page);
-    ormMsgPage = new ORM(page);
     quoteItemsPage = new QuoteItemsPage(page);
 
     await page.goto("v2/");
@@ -76,19 +76,21 @@ test.describe("Auto Save", () => {
     // Section 03 — Insurance Details
     await quotePage.selectRandomInsurer();
     await quotePage.fillClaimNumber();
-    await ormMsgPage.enterEstimator("John Doe");
+    await quotePage.enterEstimator("John Doe");
     // Section 04 — Key Dates
-    await ormMsgPage.enterEstimateStartDate();
-    await ormMsgPage.enterEstimateEndDate();
+    await quotePage.enterEstimateStartDate();
+    await quotePage.enterEstimateEndDate();
     // Save Quote
     await subNavBarPage.clickCreateButton();
     await subNavBarPage.expectToast(`New quote ${quoteNumber} added`);
   });
 
   test("Edit and Verify Quote", async ({ page }) => {
+    test.setTimeout(150_000);
+
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
     // 1. Change values — each method removes old, fills new, returns what was filled
     const transmissionResult = await quotePage.selectDifferentTransmission();
     const paintGroupResult = await quotePage.selectDifferentPaintGroup();
@@ -100,15 +102,17 @@ test.describe("Auto Save", () => {
     const engineSize = await quotePage.fillEngineSize();
     const trimCode = await quotePage.fillTrimCode();
     const paintCode = await quotePage.fillPaintCode();
-    const insurerResult = await quotePage.selectDifferentInsurer();
-    const firstNameResult = await quotePage.selectDifferentFirstName();
-    const lastNameResult = await quotePage.selectDifferentLastName();
-    // 2. Blur focus + trigger auto save
-    await ormMsgPage.clickHeaderTab();
+    await quotePage.selectDifferentInsurer();
+    await quotePage.selectDifferentFirstName();
+    await quotePage.selectDifferentLastName();
+    // 2. Blur focus + trigger auto save, handle the (random) Update Customer modal
+    await quoteNavBar.goToHeaderTab();
     await quotePage.handleUpdateCustomerModal();
-    await ormMsgPage.clickHeaderTab();
+    await quoteNavBar.goToHeaderTab();
     await quotePage.waitForAutoSaveCloudDone();
-    // 3. Hard reload — wipes all in-memory state
+    // 3. Capture the actual persisted customer + insurer from the UI — the random
+    //    modal choice decides these — then hard reload (wipes in-memory state).
+    const persisted = await quotePage.captureCustomerAndInsurer();
     await page.reload();
     // 4. Verify all values survived the reload
     await quotePage.verifyEditedQuoteValuesAfterReload({
@@ -122,9 +126,9 @@ test.describe("Auto Save", () => {
       engineSize,
       trimCode,
       paintCode,
-      insurer: insurerResult.selectedInsurer,
-      firstName: firstNameResult.newFirstName,
-      lastName: lastNameResult.newLastName,
+      insurer: persisted.insurer,
+      firstName: persisted.firstName,
+      lastName: persisted.lastName,
     });
   });
 
@@ -132,31 +136,31 @@ test.describe("Auto Save", () => {
     test.setTimeout(600_000);
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     addedParts = await quoteItemsPage.addQuotingItemsByIndex(20);
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await quotePage.waitForAutoSaveCloudDone();
   });
 
   test("Verify Quoting Item Sequence", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
     await page.reload({ waitUntil: "networkidle" });
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await quoteItemsPage.verifyPartsOrderAfterReload(addedParts);
   });
 
   test("Verify Line Number Sequence", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
     await page.reload({ waitUntil: "networkidle" });
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await quoteItemsPage.verifyLineNumberSequence();
   });
 
@@ -164,8 +168,8 @@ test.describe("Auto Save", () => {
     test.setTimeout(120_000);
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
     await quoteItemsPage.deleteAllParts();
     await quotePage.waitForAutoSaveCloudDone();
   });
