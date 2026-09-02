@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
+import { QuotePage } from "../../pages/Quote/QuotePage";
+import { QuoteNavBar } from "../../pages/Quote/QuoteNavBar";
+import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
 import { ORM } from "../../pages/ORM";
 import { epic, feature, story, step } from "allure-js-commons";
 
@@ -8,10 +11,13 @@ test.describe("ORM Integration", () => {
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let ormMsgPage: ORM;
+  let quotePage: QuotePage;
+  let quoteItemsPage: QuoteItemsPage;
+  let quoteNavBar: QuoteNavBar;
 
   // Variables
   let generatedQuoteNumber: string;
-  // let generatedQuoteNumber: string = "10131";
+  // let generatedQuoteNumber: string = "10468";
 
   let changedPartValues: number[] = [];
   let changedGrandTotalExTax: number = 0;
@@ -24,6 +30,9 @@ test.describe("ORM Integration", () => {
     navBarPage = new NavBarPage(page);
     subNavBarPage = new SubNavBarPage(page);
     ormMsgPage = new ORM(page);
+    quotePage = new QuotePage(page);
+    quoteItemsPage = new QuoteItemsPage(page);
+    quoteNavBar = new QuoteNavBar(page);
 
     await page.goto("v2/");
     await expect(page).toHaveURL(/\/v2\/$/);
@@ -77,27 +86,32 @@ test.describe("ORM Integration", () => {
     generatedQuoteNumber = result.quoteNumber;
     await ormMsgPage.openORMTab();
     await ormMsgPage.validateQuoteStatus("Assessing Quote Request");
+      // Making Quote AH-ON
+    await subNavBarPage.enableAssessmentHistory();
+    await subNavBarPage.clickSaveButton();
   });
 
   test("Submit Quote to ORM", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    // Fill in required fields for submission
     await ormMsgPage.SelectTransmission("M");
     await ormMsgPage.enterColour("Red");
     await ormMsgPage.enterOdometer("50300");
-    await ormMsgPage.enterEstimator("John Doe");
-    await ormMsgPage.enterEstimateStartDate();
-    await ormMsgPage.enterEstimateEndDate();
+    await quotePage.enterEstimator("John Doe");
+    await quotePage.enterEstimateStartDate();
+    await quotePage.enterEstimateEndDate();
     await subNavBarPage.clickSaveButton();
     await subNavBarPage.expectToast(`Quote ${generatedQuoteNumber} saved`);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await ormMsgPage.selectingQuotingItemsRandom();
     await subNavBarPage.clickSaveButton();
-    await ormMsgPage.openManualSectionsTab();
-    await ormMsgPage.randomPriceForItems();
+    await quotePage.openManualSectionsTab();
+    await quoteItemsPage.randomPriceForItems();
     await subNavBarPage.clickSaveButton();
+    await subNavBarPage.expectToast(`Quote ${generatedQuoteNumber} saved`);
     await ormMsgPage.openORMTab();
     await ormMsgPage.openORMDropdown();
     await ormMsgPage.clickSubmitQuote();
@@ -114,7 +128,7 @@ test.describe("ORM Integration", () => {
   test("Load Authority", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
     await ormMsgPage.openORMTab();
     await ormMsgPage.openORMDropdown();
     await ormMsgPage.clickViewMessages();
@@ -139,7 +153,7 @@ test.describe("ORM Integration", () => {
   test("Simultaneously Load Authority", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
     await ormMsgPage.openORMTab();
     await ormMsgPage.openORMDropdown();
     await ormMsgPage.clickViewMessages();
@@ -249,7 +263,7 @@ test.describe("ORM Integration", () => {
   test("Addition of Extra Quote Item By Insurer", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
 
     // Capture UI totals BEFORE loading the new authority (baseline)
     const { totalExGstAmount: preLoadExGst, totalIncGstAmount: preLoadIncGst } =
@@ -326,9 +340,10 @@ test.describe("ORM Integration", () => {
   });
 
   test("Submit Tax Invoice", async ({ page }) => {
+    test.setTimeout(600_000);
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
     await ormMsgPage.openInvoiceTab();
     await ormMsgPage.handleInvoiceFlow(generatedQuoteNumber, subNavBarPage);
     await ormMsgPage.openORMTab();
@@ -344,14 +359,14 @@ test.describe("ORM Integration", () => {
     await ormMsgPage.validateQuoteStatus("Quote Invoice Submitted");
     await ormMsgPage.openORMDropdown();
     await ormMsgPage.verifySubmitTaxInvoiceDisabled();
-    await ormMsgPage.openQuotingTab();
+    await quoteNavBar.goToQuotingTab();
     await ormMsgPage.verifyQuotingNavButtonsDisabled();
   });
 
   test("Load Payment Authorisation", async ({ page }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
     await ormMsgPage.openORMTab();
     await ormMsgPage.openORMDropdown();
     await ormMsgPage.clickViewMessages();
@@ -369,7 +384,7 @@ test.describe("ORM Integration", () => {
     await subNavBarPage.clickBackButton();
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
+    await quotePage.searchAndOpenQuoteByNumber(generatedQuoteNumber);
     await ormMsgPage.openORMTab();
     await ormMsgPage.validateQuoteStatus("Payment Authorised");
   });

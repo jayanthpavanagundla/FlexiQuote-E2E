@@ -32,7 +32,6 @@ export class ORM extends BasePage {
   uidInput: Locator;
   messageNoInput: Locator;
   regNoInput: Locator;
-  filterButton: Locator;
   loadMessageButton: Locator;
   nextBtn: Locator;
   activeModal: Locator;
@@ -41,15 +40,9 @@ export class ORM extends BasePage {
   existingUserRadioBtn: Locator;
   yesButton: Locator;
   transmissionDropdown: Locator;
-  searchInput: Locator;
   ormQuoteNo: Locator;
   colourInput: Locator;
   odometerInput: Locator;
-  estimatorInput: Locator;
-  estimateStartDateInput: Locator;
-  estimateEndDateInput: Locator;
-  headerLink: Locator;
-  quotingLink: Locator;
   vehicleSectionsTab: Locator;
   manualSectionsTab: Locator;
   templatesTab: Locator;
@@ -71,6 +64,8 @@ export class ORM extends BasePage {
   raiseInvoice: Locator;
   quoteStatusSelect: Locator;
   quoteEditingLockedText: Locator;
+  searchInput: Locator;
+  filterButton: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -90,7 +85,6 @@ export class ORM extends BasePage {
     this.uidInput = page.getByPlaceholder("UID");
     this.messageNoInput = page.getByPlaceholder("Message No.");
     this.regNoInput = this.page.getByPlaceholder("Rego");
-    this.filterButton = this.page.getByRole("button", { name: "Filter" });
     this.loadMessageButton = this.page
       .locator('a[data-tooltip="Load Message"]')
       .nth(0);
@@ -107,9 +101,6 @@ export class ORM extends BasePage {
       })
       .first();
 
-    // Filters
-    this.searchInput = this.page.locator('input[placeholder="Search..."]');
-
     // ORM Quote Locator
     this.ormQuoteNo = this.page
       .locator("table:visible tbody tr")
@@ -120,9 +111,6 @@ export class ORM extends BasePage {
       .first();
 
     // Header Locators
-    this.headerLink = this.page.getByRole("link", {
-      name: "account_circle Header",
-    });
     this.transmissionDropdown = this.page
       .locator("div:nth-child(7) > div > .field > .control > .select > select")
       .first();
@@ -132,18 +120,8 @@ export class ORM extends BasePage {
     this.odometerInput = this.page.locator(
       'input[placeholder="e.g. 6"][content*="greater than 0"]',
     );
-    this.estimatorInput = this.page.locator('input[placeholder="Quoter"]');
-    this.estimateStartDateInput = this.page
-      .locator('input[placeholder="Job Start Date"]')
-      .first();
-    this.estimateEndDateInput = this.page
-      .locator('input[placeholder="Job End Date"]')
-      .first();
 
     // Quoting Tab Locators
-    this.quotingLink = this.page.getByRole("link", {
-      name: "edit_document Quoting",
-    });
     this.vehicleSectionsTab = this.page.locator("li", {
       hasText: "Vehicle Sections",
     });
@@ -200,7 +178,8 @@ export class ORM extends BasePage {
       .locator("select");
     this.quoteEditingLockedText = this.page.getByText("Quote Editing Locked");
 
-    //
+    this.searchInput = this.page.locator('input[placeholder="Search..."]');
+    this.filterButton = this.page.getByRole("button", { name: "Filter" });
   }
 
   // ─────────────────────────────────────────────
@@ -661,12 +640,6 @@ export class ORM extends BasePage {
     });
   }
 
-  async openQuotingTab(): Promise<void> {
-    await step("Click Quoting tab", async () => {
-      await this.quotingLink.click();
-    });
-  }
-
   async openORMTab(): Promise<void> {
     await step("Click ORM tab", async () => {
       await this.ormLink.click();
@@ -827,18 +800,6 @@ export class ORM extends BasePage {
     });
   }
 
-  async openVehicleSectionsTab(): Promise<void> {
-    await step("Click Vehicle Sections tab", async () => {
-      await this.vehicleSectionsTab.click();
-    });
-  }
-
-  async openManualSectionsTab(): Promise<void> {
-    await step("Click Manual Sections tab", async () => {
-      await this.manualSectionsTab.click();
-    });
-  }
-
   async verifyQuotingNavButtonsDisabled(): Promise<void> {
     await step(
       "Verify Manual Quote, Templates and Vehicle Sections buttons are disabled",
@@ -949,12 +910,6 @@ export class ORM extends BasePage {
     });
   }
 
-  async clickHeaderTab(): Promise<void> {
-    await step("Click Header tab", async () => {
-      await this.headerLink.click();
-    });
-  }
-
   async SelectTransmission(option: string): Promise<void> {
     await step(`Select Transmission: ${option}`, async () => {
       await this.transmissionDropdown.selectOption(option);
@@ -970,28 +925,6 @@ export class ORM extends BasePage {
   async enterOdometer(odometer: string): Promise<void> {
     await step(`Enter Odometer: ${odometer}`, async () => {
       await this.odometerInput.fill(odometer);
-    });
-  }
-
-  async enterEstimator(estimator: string): Promise<void> {
-    await step(`Enter Estimator: ${estimator}`, async () => {
-      await this.estimatorInput.fill(estimator);
-    });
-  }
-
-  async enterEstimateStartDate(): Promise<void> {
-    await step("Enter Estimate Start Date as tomorrow", async () => {
-      const startDate = getFutureDateTime(1);
-      await this.estimateStartDateInput.fill(startDate);
-      await this.estimateStartDateInput.press("Tab");
-    });
-  }
-
-  async enterEstimateEndDate(): Promise<void> {
-    await step("Enter Estimate End Date as 3 days from today", async () => {
-      const endDate = getFutureDateTime(3);
-      await this.estimateEndDateInput.fill(endDate);
-      await this.estimateEndDateInput.press("Tab");
     });
   }
 
@@ -1050,25 +983,6 @@ export class ORM extends BasePage {
     );
   }
 
-  async searchAndOpenQuoteByNumber(quoteNumber: string): Promise<void> {
-    await step(`Search and open Quote No: ${quoteNumber}`, async () => {
-      await this.searchInput.fill(quoteNumber);
-      await expect(this.searchInput).toHaveValue(quoteNumber);
-      await this.filterButton.click();
-      const quoteLink = this.page.locator(
-        "table:visible tbody tr td:first-child a[href]",
-        { hasText: new RegExp(`^\\s*${quoteNumber}\\s*$`) },
-      );
-      await expect(quoteLink).toBeVisible({ timeout: 30000 });
-      await Promise.all([
-        this.page.waitForURL(/\/v2\/quotes\//, {
-          waitUntil: "domcontentloaded",
-        }),
-        quoteLink.click(),
-      ]);
-    });
-  }
-
   // ─────────────────────────────────────────────
   // Quoting Item Methods
   // ─────────────────────────────────────────────
@@ -1102,55 +1016,6 @@ export class ORM extends BasePage {
       await expect(plusButton).toBeVisible();
       await plusButton.click({ force: true });
       await this.page.waitForTimeout(500);
-    }
-  }
-
-  // Random Price for Quoting Items
-  async randomPriceForItems(): Promise<void> {
-    const allPartRows = this.page.locator(".quote-builder-item-row.type-part");
-    await expect
-      .poll(
-        async () => {
-          const count = await allPartRows.count();
-          let visibleCount = 0;
-          for (let i = 0; i < count; i++) {
-            if (await allPartRows.nth(i).isVisible()) visibleCount++;
-          }
-          return visibleCount;
-        },
-        { timeout: 10000, message: "Waiting for visible part rows" },
-      )
-      .toBeGreaterThan(0);
-
-    const rowCount = await allPartRows.count();
-    for (let i = 0; i < rowCount; i++) {
-      const row = allPartRows.nth(i);
-      if (!(await row.isVisible())) continue;
-
-      const rowId = await row.getAttribute("id");
-      if (!rowId) continue;
-
-      const totalValue = row.locator(`[id="${rowId}-total-val"]`);
-      const totalText = ((await totalValue.textContent()) || "").trim();
-      const numericTotal = Number(totalText.replace(/[^0-9.]/g, "")) || 0;
-      if (numericTotal > 0) continue;
-
-      const randomPrice = Math.floor(Math.random() * (70 - 10 + 1)) + 10;
-      await row.scrollIntoViewIfNeeded();
-      await totalValue.click({ force: true });
-
-      const unitInput = row.locator(`input[id="${rowId}-unit"]`);
-      await unitInput.waitFor({ state: "visible", timeout: 8000 });
-
-      const existingValue = ((await unitInput.inputValue()) || "").trim();
-      if (
-        existingValue === "" ||
-        existingValue === "0" ||
-        existingValue === "0.00"
-      ) {
-        await unitInput.fill(randomPrice.toString());
-        await unitInput.press("Tab");
-      }
     }
   }
 

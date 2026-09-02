@@ -24,6 +24,10 @@ export class SubNavBarPage extends BasePage {
   overwriteExistingQuote: Locator;
   copyQuoteBtn: Locator;
   saveAndContinue: Locator;
+  assessmentHistoryOff: Locator;
+  assessmentHistoryOn: Locator;
+  invoicePlusButton: Locator;
+  invoiceSaveButton: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -43,6 +47,12 @@ export class SubNavBarPage extends BasePage {
     this.saveAndContinue = page.getByRole("button", {
       name: "Save & Continue",
     });
+    this.assessmentHistoryOff = page.getByText(
+      "check_box_outline_blank Enable Assessment History",
+    );
+    this.assessmentHistoryOn = page.getByText(
+      "check_box Enable Assessment History",
+    );
 
     // Repairer Quote Listing Page Locators
     this.quoteAnalysis = page
@@ -69,6 +79,11 @@ export class SubNavBarPage extends BasePage {
     this.okButton = page.locator(
       'button[data-tooltip="Generate report(s)"]:has-text("Ok")',
     );
+
+    // Invoice 
+    this.invoicePlusButton = page.locator(".tooltip > .button");
+    this.invoiceSaveButton = page.getByRole('button', { name: 'Raise Invoice' })
+
   }
 
   // Toast Validation Method
@@ -79,6 +94,20 @@ export class SubNavBarPage extends BasePage {
   async expectToast(message: string): Promise<void> {
     await step(`Verify toast message: "${message}"`, async () => {
       await expect(this.getToast(message)).toBeVisible();
+    });
+  }
+
+  // Invoice Plus Button Click Method
+  async clickInvoicePlusButton() {
+    await step("Click Invoice Plus button", async () => {
+      await this.invoicePlusButton.click();
+    });
+  }
+
+  // Invoice Save Button Click Method
+  async clickInvoiceSaveButton() {
+    await step("Click Invoice Save button", async () => {
+      await this.invoiceSaveButton.click();
     });
   }
 
@@ -127,6 +156,46 @@ export class SubNavBarPage extends BasePage {
   async selectCopyQuote() {
     await step("Select Copy Quote Option", async () => {
       await this.copyQuoteOption.click();
+    });
+  }
+
+  // Enable Assessment History (AH-ON)
+  async enableAssessmentHistory() {
+    await step("Enable Assessment History", async () => {
+      const menuAlreadyOpen =
+        (await this.assessmentHistoryOn.isVisible()) ||
+        (await this.assessmentHistoryOff.isVisible());
+      if (!menuAlreadyOpen) {
+        await this.ellipsis.click();
+      }
+      if (await this.assessmentHistoryOn.isVisible()) {
+        // Already enabled
+        await this.ellipsis.click();
+        return;
+      }
+      if (await this.assessmentHistoryOff.isVisible()) {
+        await this.assessmentHistoryOff.click();
+      }
+    });
+  }
+
+  // Disable Assessment History (AH-OFF)
+  async disableAssessmentHistory() {
+    await step("Disable Assessment History", async () => {
+      const menuAlreadyOpen =
+        (await this.assessmentHistoryOn.isVisible()) ||
+        (await this.assessmentHistoryOff.isVisible());
+      if (!menuAlreadyOpen) {
+        await this.ellipsis.click();
+      }
+      if (await this.assessmentHistoryOff.isVisible()) {
+        // Already disabled
+        await this.ellipsis.click();
+        return;
+      }
+      if (await this.assessmentHistoryOn.isVisible()) {
+        await this.assessmentHistoryOn.click();
+      }
     });
   }
 
@@ -337,6 +406,36 @@ export class SubNavBarPage extends BasePage {
     return response;
   }
 
+  // Verify that a given piece of text is present in the Print Preview PDF
+  async verifyTextInPdf(
+    expectedText: string,
+    page: Page = this.page,
+    preCapturedResponse?: PlaywrightResponse,
+  ): Promise<PlaywrightResponse> {
+    await expect(page).toHaveURL(/printpreview/);
+    const response = preCapturedResponse
+      ? preCapturedResponse
+      : await page.waitForResponse(
+          (res) =>
+            res.url().includes("/reports/postreport/") &&
+            res.status() === 200 &&
+            res.headers()["content-type"]?.includes("application/pdf"),
+        );
+
+    await step(`Verify "${expectedText}" is present in PDF`, async () => {
+      const pdfBuffer = await response.body();
+      const pdfData = await pdfParse(pdfBuffer);
+      const normalizedPdfText = pdfData.text.replace(/\s+/g, "");
+      const normalizedExpectedText = expectedText.replace(/\s+/g, "");
+      expect(
+        normalizedPdfText,
+        `Expected "${expectedText}" to be present in PDF`,
+      ).toContain(normalizedExpectedText);
+    });
+
+    return response;
+  }
+
   // Check First Row Checkbox and Open New Tab
   async checkFirstRowCheckbox(
     printButtonText: string = "Print Statement",
@@ -516,6 +615,52 @@ export class SubNavBarPage extends BasePage {
         return {
           totalExGstAmount: this.parseCurrencyAmount(totalExGstText),
           totalIncGstAmount: this.parseCurrencyAmount(totalIncGstText),
+        };
+      },
+    );
+  }
+
+  // Extract Total (Ex GST), GST (10%) and Total Payable (Inc GST) text from the Invoice summary panel
+  async fetchInvoiceSummaryTotals(): Promise<{
+    totalExGst: string;
+    gstAmount: string;
+    totalPayableIncGst: string;
+  }> {
+    return await step(
+      "Fetch Invoice summary totals (Ex GST, GST, Inc GST) from UI",
+      async () => {
+        const panel = this.page
+          .locator("div.columns.has-text-right")
+          .filter({
+            has: this.page.locator("span.label", { hasText: "Total Payable" }),
+          })
+          .first();
+
+        const labelTexts = await panel
+          .locator(".column.is-three-quarters > span.label")
+          .allInnerTexts();
+        // The AH-OFF and AH-ON invoice panels are separate components and
+        // disagree on "is-one-quarter" vs "is-one-quarters" — match both.
+        const valueTexts = await panel
+          .locator('.column[class*="is-one-quarter"] > span.label')
+          .allInnerTexts();
+
+        const textFor = (labelPattern: RegExp): string => {
+          const index = labelTexts.findIndex((text) =>
+            labelPattern.test(text.replace(/\s+/g, " ").trim()),
+          );
+          if (index === -1) {
+            throw new Error(
+              `Label matching ${labelPattern} not found in invoice summary panel. Labels found: ${labelTexts.join(", ")}`,
+            );
+          }
+          return valueTexts[index].replace(/\s+/g, " ").trim();
+        };
+
+        return {
+          totalExGst: textFor(/^Total\s*\(Ex GST\)$/i),
+          gstAmount: textFor(/^GST(\s*\(10%\))?$/i),
+          totalPayableIncGst: textFor(/^Total Payable\s*\(Inc GST\)$/i),
         };
       },
     );

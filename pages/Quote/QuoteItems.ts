@@ -107,6 +107,11 @@ export class QuoteItemsPage {
   // VEHICLE SECTION SEARCH
   vehicleSearchFilter: Locator;
 
+  // ASSESSMENT TAB AUTHORIZATION
+  authoriseButton: Locator;
+  authoriseCheckbox: Locator;
+  confirmAuthoriseButton: Locator;
+
   constructor(page: Page) {
     this.page = page;
 
@@ -258,6 +263,17 @@ export class QuoteItemsPage {
     this.vehicleSearchFilter = page.getByRole("textbox", {
       name: "Start typing to filter",
     });
+
+    // ASSESSMENT TAB AUTHORIZATION
+    this.authoriseButton = page.locator('a[data-tooltip="Submit authorise"]');
+    this.authoriseCheckbox = page
+      .locator("div.pretty", {
+        has: page.locator('label:has-text("Select All Items")'),
+      })
+      .locator("div.state");
+    this.confirmAuthoriseButton = page.locator(
+      'a[data-tooltip="Autorise selected items"]',
+    );
   }
 
   // NTAR / BUTTERFLY ITEM TYPE
@@ -284,6 +300,35 @@ export class QuoteItemsPage {
     const element = this.getPaintLoadingItem(itemName);
     await expect(element).toBeVisible();
     await element.click();
+  }
+
+  // ASSESSMENT TAB AUTHORIZATION
+  async authoriseAHONQuote() {
+    await step("Authorise AH-ON Quote", async () => {
+      await expect(this.authoriseButton).toBeEnabled();
+      await this.authoriseButton.click();
+    });
+    await step("Verify Confirm Authorise is disabled", async () => {
+      await expect(this.confirmAuthoriseButton).toHaveAttribute(
+        "disabled",
+        "disabled",
+      );
+    });
+    await step("Check Select All Items", async () => {
+      await this.authoriseCheckbox.click({ force: true });
+    });
+    await step("Click Confirm Authorise", async () => {
+      await expect(this.confirmAuthoriseButton).not.toHaveAttribute(
+        "disabled",
+      );
+      await this.confirmAuthoriseButton.click();
+    });
+  }
+
+  async verifyQuoteStatusAuthorised() {
+    await expect(
+      this.page.locator(".tag.is-success", { hasText: "Authorised" }),
+    ).toContainText("Authorised");
   }
 
   // CONSUMABLES (NTAR) — USED/EXCHANGE auto-adds paint loading + misc;
@@ -827,6 +872,9 @@ export class QuoteItemsPage {
           // Select the option
           await row.locator("select").selectOption(value);
 
+          // Give the UI a moment to apply the condition change
+          await this.page.waitForTimeout(1500);
+
           results.push({ description, condition });
           await step(
             `Row ${i + 1} "${description}": set condition to ${condition}`,
@@ -860,5 +908,54 @@ export class QuoteItemsPage {
       .first();
     await expect(partRow).toBeVisible();
     await partRow.locator("div.butterfly-item-values").click();
+  }
+
+  // Random Price for Quoting Items
+  async randomPriceForItems(): Promise<void> {
+    const allPartRows = this.page.locator(".quote-builder-item-row.type-part");
+    await expect
+      .poll(
+        async () => {
+          const count = await allPartRows.count();
+          let visibleCount = 0;
+          for (let i = 0; i < count; i++) {
+            if (await allPartRows.nth(i).isVisible()) visibleCount++;
+          }
+          return visibleCount;
+        },
+        { timeout: 10000, message: "Waiting for visible part rows" },
+      )
+      .toBeGreaterThan(0);
+
+    const rowCount = await allPartRows.count();
+    for (let i = 0; i < rowCount; i++) {
+      const row = allPartRows.nth(i);
+      if (!(await row.isVisible())) continue;
+
+      const rowId = await row.getAttribute("id");
+      if (!rowId) continue;
+
+      const totalValue = row.locator(`[id="${rowId}-total-val"]`);
+      const totalText = ((await totalValue.textContent()) || "").trim();
+      const numericTotal = Number(totalText.replace(/[^0-9.]/g, "")) || 0;
+      if (numericTotal > 0) continue;
+
+      const randomPrice = Math.floor(Math.random() * (70 - 10 + 1)) + 10;
+      await row.scrollIntoViewIfNeeded();
+      await totalValue.click({ force: true });
+
+      const unitInput = row.locator(`input[id="${rowId}-unit"]`);
+      await unitInput.waitFor({ state: "visible", timeout: 8000 });
+
+      const existingValue = ((await unitInput.inputValue()) || "").trim();
+      if (
+        existingValue === "" ||
+        existingValue === "0" ||
+        existingValue === "0.00"
+      ) {
+        await unitInput.fill(randomPrice.toString());
+        await unitInput.press("Tab");
+      }
+    }
   }
 }

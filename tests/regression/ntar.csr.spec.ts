@@ -5,6 +5,7 @@ import { QuotePage } from "../../pages/Quote/QuotePage";
 import { QuoteItemsPage } from "../../pages/Quote/QuoteItems";
 import { ORM } from "../../pages/ORM";
 import { epic, step } from "allure-js-commons";
+import { QuoteNavBar } from "../../pages/Quote/QuoteNavBar";
 
 let quoteNumber: string;
 let addedParts: string[] = [];
@@ -16,6 +17,7 @@ test.describe("NTAR Quote", () => {
   let quotePage: QuotePage;
   let quoteItemsPage: QuoteItemsPage;
   let ormMsgPage: ORM;
+  let quoteNavBar: QuoteNavBar;
 
   test.beforeEach(async ({ page }) => {
     navBarPage = new NavBarPage(page);
@@ -23,6 +25,7 @@ test.describe("NTAR Quote", () => {
     subNavBarPage = new SubNavBarPage(page);
     ormMsgPage = new ORM(page);
     quoteItemsPage = new QuoteItemsPage(page);
+    quoteNavBar = new QuoteNavBar(page);
 
     await epic("NTAR Module");
 
@@ -55,10 +58,10 @@ test.describe("NTAR Quote", () => {
     // Section 03 — Insurance Details
     await quotePage.selectInsurer("Insurance Australia Limited");
     await quotePage.fillClaimNumber();
-    await ormMsgPage.enterEstimator("John Doe");
+    await quotePage.enterEstimator("John Doe");
     // Section 04 — Key Dates
-    await ormMsgPage.enterEstimateStartDate();
-    await ormMsgPage.enterEstimateEndDate();
+    await quotePage.enterEstimateStartDate();
+    await quotePage.enterEstimateEndDate();
     // Save Quote
     await subNavBarPage.clickCreateButton();
     await subNavBarPage.expectToast(`New quote ${quoteNumber} added`);
@@ -69,9 +72,9 @@ test.describe("NTAR Quote", () => {
   }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     // Adding NTAR Parts
     await quoteItemsPage.selectVehiclePart("Bonnet");
     await subNavBarPage.expectToast("1 Item added");
@@ -90,9 +93,9 @@ test.describe("NTAR Quote", () => {
       `Quote ${quoteNumber} saved`,
     );
     // Re-Open Quote to Verify the Paint and Consumbles are Visible
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await quoteItemsPage.expectConsumablesAdded(
       changedParts,
       "Verify Paint and Misc sections are visible after reopening the quote",
@@ -104,9 +107,9 @@ test.describe("NTAR Quote", () => {
   }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     const newConditionParts =
       await quoteItemsPage.changePartsToUsedOrExchange("NEW");
     await quoteItemsPage.expectConsumablesRemoved(
@@ -119,9 +122,9 @@ test.describe("NTAR Quote", () => {
     await subNavBarPage.clickSaveAndContinueIfVisible(
       `Quote ${quoteNumber} saved`,
     );
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await quoteItemsPage.expectConsumablesRemoved(
       newConditionParts,
       "Paint and Misc sections should remain removed after reopening the quote with NEW parts",
@@ -133,9 +136,9 @@ test.describe("NTAR Quote", () => {
   }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     const changedParts =
       await quoteItemsPage.changePartsToUsedOrExchange("USED");
     await quoteItemsPage.expectConsumablesAdded(changedParts);
@@ -150,9 +153,9 @@ test.describe("NTAR Quote", () => {
     await subNavBarPage.clickSaveAndContinueIfVisible(
       `Quote ${quoteNumber} saved`,
     );
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await quoteItemsPage.expectConsumablesRemoved(
       changedParts,
       "Parts, Paint, and Misc sections should remain deleted after reopening the quote",
@@ -164,9 +167,9 @@ test.describe("NTAR Quote", () => {
   }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     // Adding NTAR Parts
     await quoteItemsPage.selectVehiclePart("Bonnet");
     await subNavBarPage.expectToast("1 Item added");
@@ -185,9 +188,9 @@ test.describe("NTAR Quote", () => {
       `Quote ${quoteNumber} saved`,
     );
     // Re-Open Quote to Verify the Paint and Consumbles are Visible
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await quoteItemsPage.expectConsumablesAdded(
       changedParts,
       "Verify Paint and Misc sections are visible after reopening the quote",
@@ -199,9 +202,9 @@ test.describe("NTAR Quote", () => {
   }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     const newConditionParts =
       await quoteItemsPage.changePartsToUsedOrExchange("NEW");
     await quoteItemsPage.expectConsumablesRemoved(
@@ -214,9 +217,9 @@ test.describe("NTAR Quote", () => {
     await subNavBarPage.clickSaveAndContinueIfVisible(
       `Quote ${quoteNumber} saved`,
     );
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await quoteItemsPage.expectConsumablesRemoved(
       newConditionParts,
       "Paint and Misc sections should remain removed after reopening the quote with NEW parts",
@@ -228,9 +231,9 @@ test.describe("NTAR Quote", () => {
   }) => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     const changedParts =
       await quoteItemsPage.changePartsToUsedOrExchange("EXCHANGE");
     await quoteItemsPage.expectConsumablesAdded(changedParts);
@@ -245,9 +248,9 @@ test.describe("NTAR Quote", () => {
     await subNavBarPage.clickSaveAndContinueIfVisible(
       `Quote ${quoteNumber} saved`,
     );
-    await ormMsgPage.searchAndOpenQuoteByNumber(quoteNumber);
-    await ormMsgPage.openQuotingTab();
-    await ormMsgPage.openVehicleSectionsTab();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quotePage.openVehicleSectionsTab();
     await quoteItemsPage.expectConsumablesRemoved(
       changedParts,
       "Parts, Paint, and Misc sections should remain deleted after reopening the quote",

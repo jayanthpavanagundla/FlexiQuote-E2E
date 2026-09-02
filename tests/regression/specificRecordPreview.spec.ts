@@ -183,7 +183,7 @@ test.describe("Listing Preview", () => {
     await subNavBarPage.clickOkButton();
     await subNavBarPage.verifyPrintPreviewTitle();
     await subNavBarPage.verifyPdfLoadedAndNoError(
-      "rptQuoteDollarHour",
+      ["rptQuoteDollarHour","rptQuoteDollarHourAdditionals"],
       SUBREPORT_ERROR,
     );
   });
