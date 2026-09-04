@@ -608,10 +608,10 @@ export class QuoteItemsPage {
     await expect(this.partsSection).toContainText(text);
   }
 
-  // VEHICLE SECTIONS: ADD ITEMS BY INDEX
+  // VEHICLE SECTIONS: ADD RANDOM ITEMS (not in table sequence)
   async addQuotingItemsByIndex(count: number): Promise<string[]> {
     return await step(
-      `Add ${count} quoting items from Vehicle Sections in sequence`,
+      `Add ${count} random quoting items from Vehicle Sections`,
       async () => {
         const clickableRows = this.page.locator(
           "table tbody tr:has(td:last-child div.butterfly-item-values)",
@@ -623,9 +623,17 @@ export class QuoteItemsPage {
             `Not enough rows to add ${count}; only ${total} available`,
           );
         }
+        // Shuffle all indices, take the first `count`
+        const indices = Array.from({ length: total }, (_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        const chosen = indices.slice(0, count);
+
         const addedPartNames: string[] = [];
-        for (let i = 0; i < count; i++) {
-          const row = clickableRows.nth(i);
+        for (const idx of chosen) {
+          const row = clickableRows.nth(idx);
           const partName = (
             (await row.locator("td").nth(1).textContent()) ?? ""
           ).trim();
@@ -635,7 +643,10 @@ export class QuoteItemsPage {
           await expect(button).toBeVisible();
           await button.click({ force: true });
           await this.page.waitForTimeout(300);
-          await step(`Added item ${i + 1}: "${partName}"`, async () => {});
+          await step(
+            `Added item (row ${idx + 1}): "${partName}"`,
+            async () => {},
+          );
         }
         return addedPartNames;
       },
