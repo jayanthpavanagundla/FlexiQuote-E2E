@@ -1,1 +1,1 @@
-{"total":1,"items":[{"uid":"210d060974fd2478a804a3b3cc1cab5c","name":"Auth-Setup","statistic":{"failed":0,"broken":1,"skipped":0,"passed":0,"unknown":0,"total":1}}]}
+{"total":2,"items":[{"uid":"210d060974fd2478a804a3b3cc1cab5c","name":"Auth-Setup","statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1}},{"uid":"3069eae3a571e1d0ab65f58a0e7fd953","name":"Listing Preview","statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1}}]}

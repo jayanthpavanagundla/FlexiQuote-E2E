@@ -1,1 +1,1 @@
-[{"uid":"7f4988eec008b7b","name":"CSR Sign In","time":{"start":1788502497884,"stop":1788502560819,"duration":62935},"status":"broken","severity":"normal"}]
+[{"uid":"13fce98621f372b3","name":"Quick Item Listing Preview","time":{"start":1788503183348,"stop":1788503193930,"duration":10582},"status":"passed","severity":"normal"},{"uid":"9d173dab6bf27cde","name":"CSR Sign In","time":{"start":1788503166462,"stop":1788503181601,"duration":15139},"status":"passed","severity":"normal"}]
