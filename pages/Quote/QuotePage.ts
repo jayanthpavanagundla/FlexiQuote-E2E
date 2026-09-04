@@ -1,5 +1,5 @@
 import { expect, type Page, type Locator } from "@playwright/test";
-import { step, attachment, parameter } from "allure-js-commons";
+import { step, attachment } from "allure-js-commons";
 import { BasePage } from "../Base/BasePage.js";
 import { ORM } from "../ORM.js";
 import {
@@ -312,6 +312,61 @@ export class QuotePage extends BasePage {
         quoteLink.click(),
       ]);
     });
+  }
+
+  // Open a quote to copy into: try the preferred number, else fall back to any
+  // other existing quote (the preferred one may have been deleted).
+  async openExistingQuoteForCopy(
+    preferredQuoteNo: string,
+    excludeQuoteNo: string,
+  ): Promise<string> {
+    return await step(
+      `Open an existing quote to copy into (prefer ${preferredQuoteNo})`,
+      async () => {
+        await this.searchInput.fill(preferredQuoteNo);
+        await this.filterButton.click();
+        const preferredLink = this.page.locator(
+          "table:visible tbody tr td:first-child a[href]",
+          { hasText: new RegExp(`^\\s*${preferredQuoteNo}\\s*$`) },
+        );
+        const preferredExists = await preferredLink
+          .waitFor({ state: "visible", timeout: 8000 })
+          .then(() => true)
+          .catch(() => false);
+
+        if (preferredExists) {
+          await Promise.all([
+            this.page.waitForURL(/\/v2\/quotes\//, {
+              waitUntil: "domcontentloaded",
+            }),
+            preferredLink.click(),
+          ]);
+          return preferredQuoteNo;
+        }
+
+        // Preferred quote is gone — pick any other existing quote
+        await this.searchInput.fill("");
+        await this.filterButton.click();
+        const rows = this.page.locator(
+          "table:visible tbody tr td:first-child a[href]",
+        );
+        await expect(rows.first()).toBeVisible({ timeout: 30000 });
+        const count = await rows.count();
+        for (let i = 0; i < count; i++) {
+          const text = ((await rows.nth(i).textContent()) ?? "").trim();
+          if (text && text !== excludeQuoteNo && text !== preferredQuoteNo) {
+            await Promise.all([
+              this.page.waitForURL(/\/v2\/quotes\//, {
+                waitUntil: "domcontentloaded",
+              }),
+              rows.nth(i).click(),
+            ]);
+            return text;
+          }
+        }
+        throw new Error("No existing quote available to copy into");
+      },
+    );
   }
 
   //--------------------------- COMMON METHODS ----------------------------//
@@ -967,7 +1022,7 @@ export class QuotePage extends BasePage {
         "application/json",
       );
       if (newQuoteNumber) {
-        await parameter("New Quote Number", newQuoteNumber);
+        await step(`New Quote Number: ${newQuoteNumber}`, async () => {});
       }
 
       const fields: Array<{ label: string; key: keyof QuoteFieldValues }> = [
