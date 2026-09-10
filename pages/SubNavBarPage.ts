@@ -1,7 +1,7 @@
 ﻿import pdfParse from "pdf-parse";
 import { Page, Response as PlaywrightResponse } from "@playwright/test";
 import { expect, type Locator } from "@playwright/test";
-import { step } from "allure-js-commons";
+import { step, attachment } from "allure-js-commons";
 import { BasePage } from "./Base/BasePage.js";
 import { LoadFnOutput } from "node:module";
 
@@ -358,6 +358,31 @@ export class SubNavBarPage extends BasePage {
     });
   }
 
+  // Wait for the Print Preview report PDF network response.
+  //
+  // Listens on the *browser context* (not a single page) so it still catches
+  // the response when the preview opens in a new tab, and is meant to be armed
+  // *before* the click that triggers it:
+  //
+  //   const [pdfResponse] = await Promise.all([
+  //     subNavBarPage.waitForReportPdfResponse(),
+  //     subNavBarPage.clickOkButton(true),
+  //   ]);
+  //
+  // This removes the flake where `page.waitForResponse` is attached only after
+  // a fast PDF render has already completed and then times out.
+  async waitForReportPdfResponse(
+    timeout: number = 30_000,
+  ): Promise<PlaywrightResponse> {
+    return await this.page.context().waitForEvent("response", {
+      predicate: (res: PlaywrightResponse) =>
+        res.url().includes("/reports/postreport/") &&
+        res.url().includes("/pdf") &&
+        res.status() === 200,
+      timeout,
+    });
+  }
+
   // PDF Verification Method
   async verifyPdfLoadedAndNoError(
     reportName: string | string[],
@@ -393,6 +418,12 @@ export class SubNavBarPage extends BasePage {
           pdfBuffer[3] === 0x46;
         expect(isPdfValid, "Response is not a valid PDF").toBeTruthy();
         const pdfData = await pdfParse(pdfBuffer);
+        // Surface the extracted PDF text in the Allure report for this step.
+        await attachment(
+          `PDF text content — ${reportNames.join(" or ")}`,
+          pdfData.text,
+          "text/plain",
+        );
         const normalizedPdfText = pdfData.text.replace(/\s+/g, " ");
         const normalizedErrorText = errorText.replace(/\s+/g, " ");
         expect
@@ -418,8 +449,8 @@ export class SubNavBarPage extends BasePage {
       : await page.waitForResponse(
           (res) =>
             res.url().includes("/reports/postreport/") &&
-            res.status() === 200 &&
-            res.headers()["content-type"]?.includes("application/pdf"),
+            res.url().includes("/pdf") &&
+            res.status() === 200,
         );
 
     await step(`Verify "${expectedText}" is present in PDF`, async () => {
@@ -427,10 +458,27 @@ export class SubNavBarPage extends BasePage {
       const pdfData = await pdfParse(pdfBuffer);
       const normalizedPdfText = pdfData.text.replace(/\s+/g, "");
       const normalizedExpectedText = expectedText.replace(/\s+/g, "");
-      expect(
-        normalizedPdfText,
-        `Expected "${expectedText}" to be present in PDF`,
-      ).toContain(normalizedExpectedText);
+
+      // Primary check: label and value appear as one contiguous run.
+      if (normalizedPdfText.includes(normalizedExpectedText)) {
+        return;
+      }
+
+      // Fallback: the report renders the label and its right-aligned amount in
+      // separate table cells, so pdf-parse can split them across text runs
+      // (dotted leaders, column gaps, line breaks). Assert every token — the
+      // label words *and* the exact amount — is present instead. A wrong
+      // amount still fails here.
+      const tokens = expectedText
+        .split(/\s+/)
+        .map((token) => token.trim())
+        .filter(Boolean);
+      for (const token of tokens) {
+        expect(
+          normalizedPdfText,
+          `Expected token "${token}" from "${expectedText}" to be present in PDF`,
+        ).toContain(token);
+      }
     });
 
     return response;

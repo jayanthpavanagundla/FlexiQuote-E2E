@@ -23,7 +23,7 @@
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.6.0",
     "@types/pdf-parse": "^1.1.5",
-    "allure-playwright": "^3.8.0",
+    "allure-playwright": "^3.12.1",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2"
   },

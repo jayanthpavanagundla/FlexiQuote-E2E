@@ -1,4 +1,4 @@
-import {test,expect,type Response as PlaywrightResponse} from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { NavBarPage } from "../../pages/NavBarPage";
 import { SubNavBarPage } from "../../pages/SubNavBarPage";
 import { QuotePage } from "../../pages/Quote/QuotePage";
@@ -91,9 +91,13 @@ test.describe("Invoice for AH-OFF Quotes", () => {
     // Capture Invoice summary totals from the UI before opening the preview
     const invoiceTotals = await subNavBarPage.fetchInvoiceSummaryTotals();
 
-    // Ok opens the Print Preview in a new tab
+    // Ok opens the Print Preview in a new tab. Arm the PDF response listener
+    // *before* the click so a fast render can't finish before we're listening.
     await subNavBarPage.openPreview();
-    const previewTab = await subNavBarPage.clickOkButton(true);
+    const [pdfResponse, previewTab] = await Promise.all([
+      subNavBarPage.waitForReportPdfResponse(),
+      subNavBarPage.clickOkButton(true),
+    ]);
     if (previewTab) {
       subNavBarPage = new SubNavBarPage(previewTab);
     }
@@ -111,12 +115,13 @@ test.describe("Invoice for AH-OFF Quotes", () => {
     const totalExGst = extractAmount(invoiceTotals.totalExGst);
     const totalPayable = extractAmount(invoiceTotals.totalPayableIncGst);
 
-    let pdfResponse: PlaywrightResponse;
     await step(
       `Verify Total (Ex GST) ${totalExGst} === Sub Total excl. GST ${totalExGst}`,
       async () => {
-        pdfResponse = await subNavBarPage.verifyTextInPdf(
+        await subNavBarPage.verifyTextInPdf(
           `Sub Total excl. GST ${totalExGst}`,
+          undefined,
+          pdfResponse,
         );
       },
     );

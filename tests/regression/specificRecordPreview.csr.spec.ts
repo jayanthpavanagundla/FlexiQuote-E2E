@@ -85,11 +85,17 @@ test.describe("Listing Preview", () => {
     await navBarPage.openDebtorDropdown();
     await navBarPage.selectReceiptEntry();
     await subNavBarPage.openFirstRecordFromTable("/v2/receiptentry");
+    // Arm the PDF response listener before the click that opens the new tab,
+    // otherwise the response has already completed by the time
+    // verifyPdfLoadedAndNoError attaches its own waitForResponse.
+    const pdfResponsePromise = subNavBarPage.waitForReportPdfResponse();
     const newTab = await subNavBarPage.checkFirstRowCheckbox();
+    const pdfResponse = await pdfResponsePromise;
     await subNavBarPage.verifyPdfLoadedAndNoError(
       "AT_OfficialReceiptList",
       SUBREPORT_ERROR,
       newTab,
+      pdfResponse,
     );
     await subNavBarPage.verifyPrintPreviewTitle(newTab);
     await newTab.close();
@@ -116,12 +122,16 @@ test.describe("Listing Preview", () => {
     await navBarPage.openCreditorDropdown();
     await navBarPage.selectPaymentEntry();
     await subNavBarPage.openFirstRecordFromTable("/v2/paymententry");
+    // Arm the PDF response listener before the click that opens the new tab.
+    const pdfResponsePromise = subNavBarPage.waitForReportPdfResponse();
     const newTab =
       await subNavBarPage.checkFirstRowCheckbox("Print Remit Advice");
+    const pdfResponse = await pdfResponsePromise;
     await subNavBarPage.verifyPdfLoadedAndNoError(
       "AT_RemittanceAdvice",
       SUBREPORT_ERROR,
       newTab,
+      pdfResponse,
     );
     await subNavBarPage.verifyPrintPreviewTitle(newTab);
     await newTab.close();
@@ -285,12 +295,16 @@ test.describe("Listing Preview", () => {
     await navBarPage.openReportDropdown();
     await navBarPage.selectPaymentList();
     await subNavBarPage.openFirstRecordFromTable("/v2/paymentlist");
+    // Arm the PDF response listener before the click that opens the new tab.
+    const pdfResponsePromise = subNavBarPage.waitForReportPdfResponse();
     const newTab =
       await subNavBarPage.checkFirstRowCheckbox("Print Remit Advice");
+    const pdfResponse = await pdfResponsePromise;
     await subNavBarPage.verifyPdfLoadedAndNoError(
       "AT_RemittanceAdvice",
       SUBREPORT_ERROR,
       newTab,
+      pdfResponse,
     );
     await subNavBarPage.verifyPrintPreviewTitle(newTab);
     await newTab.close();
