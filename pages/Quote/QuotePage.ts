@@ -83,6 +83,8 @@ export class QuotePage extends BasePage {
   estimatorInput: Locator;
   vehicleSectionsTab: Locator;
   manualSectionsTab: Locator;
+  invoiceRaisedBadge: Locator;
+  openQuoteNumberText: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -219,6 +221,35 @@ export class QuotePage extends BasePage {
     this.manualSectionsTab = this.page.locator("li", {
       hasText: "Manual Quote",
     });
+
+    this.invoiceRaisedBadge = this.page.locator(
+      [
+        'li a[href$="/invoice"] span.has-badge-success[data-badge="✓"]',
+        'li a[href$="/assessmentinvoice"] span.has-badge-success[data-badge="✓"]',
+      ].join(", "),
+    );
+
+    this.openQuoteNumberText = this.page.locator("div.quote-info span.is-size-4.has-text-weight-bold",);
+  }
+
+  async hasInvoiceRaised(): Promise<boolean> {
+    return await this.invoiceRaisedBadge
+      .first()
+      .waitFor({
+        state: "visible",
+        timeout: 5000,
+      })
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  async extractOpenQuoteNumber(): Promise<string> {
+    await expect(this.openQuoteNumberText).toBeVisible();
+    const quoteNo = (await this.openQuoteNumberText.textContent())?.trim();
+    if (!quoteNo) {
+      throw new Error("Could not read the currently open quote's number");
+    }
+    return quoteNo;
   }
 
   // Handle AutoSave Sync
@@ -314,60 +345,154 @@ export class QuotePage extends BasePage {
     });
   }
 
-  // Open a quote to copy into: try the preferred number, else fall back to any
-  // other existing quote (the preferred one may have been deleted).
-  async openExistingQuoteForCopy(
-    preferredQuoteNo: string,
-    excludeQuoteNo: string,
-  ): Promise<string> {
-    return await step(
-      `Open an existing quote to copy into (prefer ${preferredQuoteNo})`,
-      async () => {
-        await this.searchInput.fill(preferredQuoteNo);
-        await this.filterButton.click();
-        const preferredLink = this.page.locator(
+  async openExistingQuoteForCopy(preferredQuoteNo: string, excludeQuoteNo: string): Promise<string> {
+  return await step(`Open existing quote for copy - preferred ${preferredQuoteNo}`, async () => {
+      const parentQuoteNo = excludeQuoteNo.trim();
+      
+      const tried = new Set<string>([parentQuoteNo]);
+
+      const quoteRows = () => this.page.locator("table:visible tbody tr td:first-child a[href]");
+
+      const goBackToQuoteList = async (): Promise<void> => {
+        await step("Go back to quote list", async () => {
+          await this.backBtn.click();
+          await expect(this.searchInput).toBeVisible({timeout: 30000});
+          await expect(this.filterButton).toBeVisible({
+            timeout: 30000,
+          });
+        });
+      };
+
+      const clearQuoteFilter = async (): Promise<void> => {
+        await step("Clear quote filter", async () => {
+          await expect(this.searchInput).toBeVisible({timeout: 30000});
+          await this.searchInput.fill("");
+          await this.filterButton.click();
+          await expect(quoteRows().first()).toBeVisible({timeout: 30000});
+        });
+      };
+
+      const openQuote = async (requestedQuoteNo: string): Promise<string | null> => {
+        const requestedNo = requestedQuoteNo.trim();
+
+        if (tried.has(requestedNo)) {
+          return null;
+        }
+
+        const row = this.page.locator(
           "table:visible tbody tr td:first-child a[href]",
-          { hasText: new RegExp(`^\\s*${preferredQuoteNo}\\s*$`) },
+          {
+            hasText: new RegExp(
+              `^\\s*${requestedNo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
+            ),
+          },
         );
-        const preferredExists = await preferredLink
-          .waitFor({ state: "visible", timeout: 8000 })
+
+        const exists = await row
+          .first()
+          .waitFor({
+            state: "visible",
+            timeout: 5000,
+          })
           .then(() => true)
           .catch(() => false);
 
-        if (preferredExists) {
-          await Promise.all([
-            this.page.waitForURL(/\/v2\/quotes\//, {
-              waitUntil: "domcontentloaded",
-            }),
-            preferredLink.click(),
-          ]);
-          return preferredQuoteNo;
+        if (!exists) {
+          tried.add(requestedNo);
+          await step(`Quote ${requestedNo} not found - skipping`, async () => {});
+          return null;
         }
 
-        // Preferred quote is gone — pick any other existing quote
-        await this.searchInput.fill("");
-        await this.filterButton.click();
-        const rows = this.page.locator(
-          "table:visible tbody tr td:first-child a[href]",
-        );
-        await expect(rows.first()).toBeVisible({ timeout: 30000 });
+        // Mark displayed candidate as tried before opening.
+        tried.add(requestedNo);
+
+        await step(`Open Quote ${requestedNo}`, async () => {
+          await row.first().click();
+          await expect(this.openQuoteNumberText).toBeVisible({
+            timeout: 30000,
+          });
+        });
+
+        // Always trust the quote number that actually opened.
+        const actualQuoteNo = await this.extractOpenQuoteNumber();
+
+        if (actualQuoteNo === parentQuoteNo) {
+          tried.add(actualQuoteNo);
+
+          await step(
+            `Opened parent quote ${actualQuoteNo} - reject it`,
+            async () => {},
+          );
+          await goBackToQuoteList();
+          return null;
+        }
+
+        if (actualQuoteNo !== requestedNo && tried.has(actualQuoteNo)) {
+          await step(`Opened already tried quote ${actualQuoteNo} - reject it`, async () => {});
+          await goBackToQuoteList();
+          return null;
+        }
+
+        tried.add(actualQuoteNo);
+
+        const invoiceRaised = await this.hasInvoiceRaised();
+
+        if (invoiceRaised) {
+          await step(`Quote ${actualQuoteNo} already has Invoice raised - reject it`, async () => {});
+          await goBackToQuoteList();
+          return null;
+        }
+        await step(`Quote ${actualQuoteNo} is valid for copy`, async () => {});
+        return actualQuoteNo;
+      };
+
+      await step(`Try preferred target quote ${preferredQuoteNo}`,async () => {});
+
+      await this.searchInput.fill(preferredQuoteNo);
+      await this.filterButton.click();
+
+      const preferredResult = await openQuote(preferredQuoteNo);
+
+      if (preferredResult) {return preferredResult}
+
+      for (let attempt = 1; attempt <= 50; attempt++) {
+        await clearQuoteFilter();
+
+        const rows = quoteRows();
+
         const count = await rows.count();
+
+        const candidates: string[] = [];
+
         for (let i = 0; i < count; i++) {
-          const text = ((await rows.nth(i).textContent()) ?? "").trim();
-          if (text && text !== excludeQuoteNo && text !== preferredQuoteNo) {
-            await Promise.all([
-              this.page.waitForURL(/\/v2\/quotes\//, {
-                waitUntil: "domcontentloaded",
-              }),
-              rows.nth(i).click(),
-            ]);
-            return text;
+          const quoteNo = ((await rows.nth(i).textContent()) ?? "").trim();
+
+          if (
+            quoteNo &&
+            quoteNo !== parentQuoteNo &&
+            !tried.has(quoteNo)
+          ) {
+            candidates.push(quoteNo);
           }
         }
-        throw new Error("No existing quote available to copy into");
-      },
-    );
-  }
+
+        if (candidates.length === 0) {
+          throw new Error(
+            `No usable existing quote found. Parent/source quote "${parentQuoteNo}" was excluded and all other available quotes were already checked.`,
+          );
+        }
+        // Random quote
+        const randomQuoteNo = candidates[Math.floor(Math.random() * candidates.length)];
+        await step(`Random fallback attempt ${attempt}: ${randomQuoteNo}`, async () => {});
+        const result = await openQuote(randomQuoteNo);
+        if (result) {return result}
+      }
+      throw new Error(
+        "Exceeded 50 attempts while searching for a non-invoiced target quote",
+      );
+    },
+  );
+}
 
   //--------------------------- COMMON METHODS ----------------------------//
   private async fillGeneratedInput(params: {
@@ -615,7 +740,7 @@ export class QuotePage extends BasePage {
     return this.fillGeneratedInput({
       fieldName: "Odometer",
       input: this.odometerInput,
-      generate: () => randomNumbersGenerate(6),
+      generate: () => String(Math.floor(100000 + Math.random() * 900000)),
     });
   }
 

@@ -12,14 +12,65 @@ let existingQuoteNumber: string;
 let quoteNumber: string = "10250";
 
 test.describe("Copy Quote", () => {
-  test.describe.configure({ mode: "serial" });
-
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
   let quoteNavBar: QuoteNavBar;
   let ormMsgPage: ORM;
   let quoteItemsPage: QuoteItemsPage;
+
+  // / ============================================================
+    // CREATE SOURCE QUOTE ONLY ONCE
+    // ============================================================
+  
+    test.beforeAll(async ({ browser }) => {
+      const page = await browser.newPage();
+      const navBarPage = new NavBarPage(page);
+      const quotePage = new QuotePage(page);
+      const subNavBarPage = new SubNavBarPage(page);
+  
+      await page.goto("v2/");
+      await expect(page).toHaveURL(/\/v2\/$/);
+  
+      // Create source quote ONLY ONCE
+      await navBarPage.openQuoteDropdown();
+      await navBarPage.selectRepairerQuote();
+      await subNavBarPage.clickPlusNewButton();
+  
+      quoteNumber = await navBarPage.extractAndStoreQuoteNumber();
+  
+      // Section 01 — Vehicle Details
+      await quotePage.fillRegNo();
+      await quotePage.selectState();
+      await quotePage.makeAndModel();
+      await quotePage.selectDifferentPaintGroup();
+      await quotePage.selectDifferentTransmission();
+      await quotePage.selectDifferentColor();
+      await quotePage.fillVinNo();
+      await quotePage.fillEngineNo();
+      await quotePage.fillOdometer();
+      await quotePage.fillCylinders();
+      await quotePage.fillEngineSize();
+      await quotePage.fillTrimCode();
+      await quotePage.fillPaintCode();
+  
+      // Section 02 — Customer Details
+      await quotePage.fillFirstName();
+      await quotePage.fillLastName();
+  
+      // Section 03 — Insurance Details
+      await quotePage.selectRandomInsurer();
+      await quotePage.fillClaimNumber();
+      await quotePage.enterEstimator("John Doe");
+  
+      // Section 04 — Key Dates
+      await quotePage.enterEstimateStartDate();
+      await quotePage.enterEstimateEndDate();
+      await subNavBarPage.clickCreateButton();
+      await subNavBarPage.expectToast(`New quote ${quoteNumber} added`);
+      await page.close();
+    });
+  
 
   test.beforeEach(async ({ page }) => {
     await epic("Copy Quote");
@@ -33,39 +84,6 @@ test.describe("Copy Quote", () => {
 
     await page.goto("v2/");
     await expect(page).toHaveURL(/\/v2\/$/);
-  });
-
-  test("Quote Creation", async ({}) => {
-    await navBarPage.openQuoteDropdown();
-    await navBarPage.selectRepairerQuote();
-    await subNavBarPage.clickPlusNewButton();
-    quoteNumber = await navBarPage.extractAndStoreQuoteNumber();
-    // Section 01 — Vehicle Details
-    await quotePage.fillRegNo();
-    await quotePage.selectState();
-    await quotePage.makeAndModel();
-    await quotePage.selectDifferentPaintGroup();
-    await quotePage.selectDifferentTransmission();
-    await quotePage.selectDifferentColor();
-    await quotePage.fillVinNo();
-    await quotePage.fillEngineNo();
-    await quotePage.fillOdometer();
-    await quotePage.fillCylinders();
-    await quotePage.fillEngineSize();
-    await quotePage.fillTrimCode();
-    await quotePage.fillPaintCode();
-    // Section 02 - Customer Details
-    await quotePage.fillFirstName();
-    await quotePage.fillLastName();
-    // Section 03 — Insurance Details
-    await quotePage.selectRandomInsurer();
-    await quotePage.fillClaimNumber();
-    await quotePage.enterEstimator("John Doe");
-    // Section 04 — Key Dates
-    await quotePage.enterEstimateStartDate();
-    await quotePage.enterEstimateEndDate();
-    // Save Quote
-    await subNavBarPage.clickCreateButton();
   });
 
   test("Copy Quote to New Quote", async ({}) => {
@@ -90,7 +108,7 @@ test.describe("Copy Quote", () => {
     );
   });
 
-  test("Copy Quote from AH-OFF to AH-ON", async ({}) => {
+  test("Copy Quote from AH-OFF to AH-ON", async ({page}) => {
     const targetQuoteNo = String(Number(quoteNumber) - 7);
     // Verify target quote (AH-ON)
     await navBarPage.openQuoteDropdown();
@@ -121,20 +139,27 @@ test.describe("Copy Quote", () => {
       "Copy quote successful. Please remember to save quote.",
     );
     await subNavBarPage.clickSaveButton();
-    await quoteNavBar.goToQuotingTab();
-    await quoteItemsPage.verifyCopytoExistingItemsSequence(
-      newQuoteItemsSequence,
-    );
-    await quoteItemsPage.deleteAllParts();
-    await quoteNavBar.goToHeaderTab();
+    await page.waitForTimeout(10_000);
     existingQuoteNumber = await navBarPage.extractAndStoreQuoteNumber();
     await step(`"${existingQuoteNumber}" === "${targetQuoteNo}"`, async () => {
       expect(existingQuoteNumber).toBe(targetQuoteNo);
     });
+    // Verify Quoting Items and Sequence
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.verifyCopytoExistingItemsSequence(newQuoteItemsSequence);
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
+    // Clean up the source quote so the next test starts with empty quoting
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
   });
 
-  test("Copy Quote from AH-OFF to AH-OFF", async ({}) => {
-    const targetQuoteNo = String(Number(quoteNumber) - 7);
+  test("Copy Quote from AH-OFF to AH-OFF", async ({page}) => {
+    const targetQuoteNo = String(Number(quoteNumber) - 8);
     // Verify target quote (AH-OFF)
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
@@ -168,22 +193,27 @@ test.describe("Copy Quote", () => {
       "Copy quote successful. Please remember to save quote.",
     );
     await subNavBarPage.clickSaveButton();
-    // Verify copied items
-    await quoteNavBar.goToQuotingTab();
-    await quoteItemsPage.verifyCopytoExistingItemsSequence(
-      newQuoteItemsSequence,
-    );
-    // Cleanup
-    await quoteItemsPage.deleteAllParts();
-    await quoteNavBar.goToHeaderTab();
+    await page.waitForTimeout(10_000);
     existingQuoteNumber = await navBarPage.extractAndStoreQuoteNumber();
     await step(`"${existingQuoteNumber}" === "${targetQuoteNo}"`, async () => {
       expect(existingQuoteNumber).toBe(targetQuoteNo);
     });
+    // Verify Quoting Items and Sequence
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.verifyCopytoExistingItemsSequence(newQuoteItemsSequence);
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
+    // Clean up the source quote so the next test starts with empty quoting
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
   });
 
-  test("Copy Quote from AH-ON to AH-OFF", async ({}) => {
-    const targetQuoteNo = String(Number(quoteNumber) - 7);
+  test("Copy Quote from AH-ON to AH-OFF", async ({page}) => {
+    const targetQuoteNo = String(Number(quoteNumber) - 9);
     // Configure target quote (AH-OFF)
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
@@ -216,22 +246,27 @@ test.describe("Copy Quote", () => {
       "Copy quote successful. Please remember to save quote.",
     );
     await subNavBarPage.clickSaveButton();
-    // Verify copied items
-    await quoteNavBar.goToQuotingTab();
-    await quoteItemsPage.verifyCopytoExistingItemsSequence(
-      newQuoteItemsSequence,
-    );
-    // Cleanup
-    await quoteItemsPage.deleteAllParts();
-    await quoteNavBar.goToHeaderTab();
+    await page.waitForTimeout(10_000);
     existingQuoteNumber = await navBarPage.extractAndStoreQuoteNumber();
     await step(`"${existingQuoteNumber}" === "${targetQuoteNo}"`, async () => {
       expect(existingQuoteNumber).toBe(targetQuoteNo);
     });
+    // Verify Quoting Items and Sequence
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.verifyCopytoExistingItemsSequence(newQuoteItemsSequence);
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
+    // Clean up the source quote so the next test starts with empty quoting
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
   });
 
-  test("Copy Quote from AH-ON to AH-ON", async ({}) => {
-    const targetQuoteNo = String(Number(quoteNumber) - 7);
+  test("Copy Quote from AH-ON to AH-ON", async ({page}) => {
+    const targetQuoteNo = String(Number(quoteNumber) - 10);
     // Configure target quote (AH-ON)
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
@@ -264,17 +299,22 @@ test.describe("Copy Quote", () => {
       "Copy quote successful. Please remember to save quote.",
     );
     await subNavBarPage.clickSaveButton();
-    // Verify copied items
-    await quoteNavBar.goToQuotingTab();
-    await quoteItemsPage.verifyCopytoExistingItemsSequence(
-      newQuoteItemsSequence,
-    );
-    // Cleanup
-    await quoteItemsPage.deleteAllParts();
-    await quoteNavBar.goToHeaderTab();
+    await page.waitForTimeout(10_000);
     existingQuoteNumber = await navBarPage.extractAndStoreQuoteNumber();
     await step(`"${existingQuoteNumber}" === "${targetQuoteNo}"`, async () => {
       expect(existingQuoteNumber).toBe(targetQuoteNo);
     });
+    // Verify Quoting Items and Sequence
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.verifyCopytoExistingItemsSequence(newQuoteItemsSequence);
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
+    // Clean up the source quote so the next test starts with empty quoting
+    await navBarPage.openQuoteDropdown();
+    await navBarPage.selectRepairerQuote();
+    await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
+    await quoteNavBar.goToQuotingTab();
+    await quoteItemsPage.deleteAllParts();
+    await subNavBarPage.clickSaveButton();
   });
 });

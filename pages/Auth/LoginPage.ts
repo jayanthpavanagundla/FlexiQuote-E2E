@@ -19,7 +19,7 @@ export class LoginPage extends BasePage {
     this.signInButton = page.getByRole("button", { name: "Sign In" });
     this.proceedButton = page.getByRole("button", { name: "Proceed" });
     this.nextButton = page.getByRole("button", { name: "Next" });
-    this.companySearch = page.getByPlaceholder("Select a company");
+    this.companySearch = page.getByPlaceholder("Start typing a company name");
   }
 
   private async handleProceedModal() {
@@ -66,10 +66,7 @@ export class LoginPage extends BasePage {
       await this.password.fill(password);
       await this.nextButton.click();
       await this.companySearch.fill(companyName);
-      await this.page
-        .getByRole("listitem")
-        .filter({ hasText: companyName })
-        .click();
+      await this.page.getByRole("button", { name: companyName, exact: true }).click();
       await this.signInButton.click();
       await this.handleProceedModal();
     });

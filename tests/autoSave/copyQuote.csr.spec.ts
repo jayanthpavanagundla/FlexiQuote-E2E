@@ -11,6 +11,8 @@ let newquoteNumber: string;
 let existingQuoteNumber: string;
 
 test.describe("Auto Save", () => {
+  test.describe.configure({ timeout: 120_000 });
+
   let navBarPage: NavBarPage;
   let subNavBarPage: SubNavBarPage;
   let quotePage: QuotePage;
@@ -90,7 +92,7 @@ test.describe("Auto Save", () => {
     await navBarPage.selectRepairerQuote();
     await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
     const originalQuoteData = await quotePage.captureQuoteFieldValues();
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.selectCopyQuote();
     await subNavBarPage.copyToNewQuote();
     await subNavBarPage.expectToast("Copy quote successful. Please remember to save quote.",);
@@ -104,13 +106,12 @@ test.describe("Auto Save", () => {
   // TEST 02
   // SOURCE AH-OFF → TARGET AH-ON
    test("Copy Quote from AH-OFF to AH-ON", async ({ page }) => {
-      test.setTimeout(200_000);
       let targetQuoteNo = String(Number(quoteNumber) - 7);
       // Verify target quote (AH-ON)
       await navBarPage.openQuoteDropdown();
       await navBarPage.selectRepairerQuote();
       targetQuoteNo = await quotePage.openExistingQuoteForCopy(targetQuoteNo,quoteNumber);
-      await subNavBarPage.clickEllipisBtn();
+      await quoteNavBar.openMoreMenu();
       await subNavBarPage.enableAssessmentHistory();
       await quotePage.waitForAutoSaveCloudDone();
       await page.keyboard.press("Escape"); 
@@ -118,17 +119,17 @@ test.describe("Auto Save", () => {
       await navBarPage.openQuoteDropdown();
       await navBarPage.selectRepairerQuote();
       await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
-      await subNavBarPage.clickEllipisBtn();
+      await quoteNavBar.openMoreMenu();
       await subNavBarPage.disableAssessmentHistory();
       await quotePage.waitForAutoSaveCloudDone();
-      await page.keyboard.press("Escape"); 
+      await page.keyboard.press("Escape");
       await quoteNavBar.goToQuotingTab();
       await quotePage.openVehicleSectionsTab();
       await quoteItemsPage.addQuotingItemsByIndex(5);
       await quoteNavBar.goToQuotingTab();
       await quotePage.waitForAutoSaveCloudDone();
       const newQuoteItemsSequence = await quoteItemsPage.captureQuotingItemsSequence();
-      await subNavBarPage.clickEllipisBtn();
+      await quoteNavBar.openMoreMenu();
       await subNavBarPage.selectCopyQuote();
       await subNavBarPage.copyToExistingQuote(targetQuoteNo);
       await subNavBarPage.expectToast("Copy quote successful.");
@@ -155,13 +156,12 @@ test.describe("Auto Save", () => {
   // TEST 03
   // SOURCE AH-OFF → TARGET AH-OFF
   test("Copy Quote from AH-OFF to AH-OFF", async ({ page }) => {
-    test.setTimeout(200_000);
     let targetQuoteNo = String(Number(quoteNumber) - 8);
     // Configure target quote (AH-OFF)
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     targetQuoteNo = await quotePage.openExistingQuoteForCopy(targetQuoteNo,quoteNumber);
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.disableAssessmentHistory();
     await quotePage.waitForAutoSaveCloudDone();
     await page.keyboard.press("Escape");
@@ -169,7 +169,7 @@ test.describe("Auto Save", () => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.disableAssessmentHistory();
     await quotePage.waitForAutoSaveCloudDone();
     await page.keyboard.press("Escape");
@@ -179,7 +179,7 @@ test.describe("Auto Save", () => {
     await quoteNavBar.goToQuotingTab();
     await quotePage.waitForAutoSaveCloudDone();
     const newQuoteItemsSequence = await quoteItemsPage.captureQuotingItemsSequence();
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.selectCopyQuote();
     await subNavBarPage.copyToExistingQuote(targetQuoteNo);
     await subNavBarPage.expectToast("Copy quote successful.");
@@ -206,13 +206,12 @@ test.describe("Auto Save", () => {
   // TEST 04
   // SOURCE AH-ON → TARGET AH-OFF
   test("Copy Quote from AH-ON to AH-OFF", async ({ page }) => {
-    test.setTimeout(200_000);
     let targetQuoteNo = String(Number(quoteNumber) - 9);
     // Configure target quote (AH-OFF)
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     targetQuoteNo = await quotePage.openExistingQuoteForCopy(targetQuoteNo,quoteNumber);
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.disableAssessmentHistory();
     await quotePage.waitForAutoSaveCloudDone();
     await page.keyboard.press("Escape");
@@ -220,7 +219,7 @@ test.describe("Auto Save", () => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.enableAssessmentHistory();
     await quotePage.waitForAutoSaveCloudDone();
     await page.keyboard.press("Escape");
@@ -231,7 +230,7 @@ test.describe("Auto Save", () => {
     await quotePage.waitForAutoSaveCloudDone();
     const newQuoteItemsSequence =
       await quoteItemsPage.captureQuotingItemsSequence();
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.selectCopyQuote();
     await subNavBarPage.copyToExistingQuote(targetQuoteNo);
     await subNavBarPage.expectToast("Copy quote successful.");
@@ -259,13 +258,12 @@ test.describe("Auto Save", () => {
   // TEST 05
   // SOURCE AH-ON → TARGET AH-ON
   test("Copy Quote from AH-ON to AH-ON", async ({ page }) => {
-    test.setTimeout(200_000);
     let targetQuoteNo = String(Number(quoteNumber) - 10);
     // Configure target quote (AH-ON)
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     targetQuoteNo = await quotePage.openExistingQuoteForCopy(targetQuoteNo,quoteNumber);
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.enableAssessmentHistory();
     await quotePage.waitForAutoSaveCloudDone();
     await page.keyboard.press("Escape");
@@ -273,7 +271,7 @@ test.describe("Auto Save", () => {
     await navBarPage.openQuoteDropdown();
     await navBarPage.selectRepairerQuote();
     await quotePage.searchAndOpenQuoteByNumber(quoteNumber);
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.enableAssessmentHistory();
     await quotePage.waitForAutoSaveCloudDone();
     await page.keyboard.press("Escape");
@@ -283,7 +281,7 @@ test.describe("Auto Save", () => {
     await quoteNavBar.goToQuotingTab();
     await quotePage.waitForAutoSaveCloudDone();
     const newQuoteItemsSequence = await quoteItemsPage.captureQuotingItemsSequence();
-    await subNavBarPage.clickEllipisBtn();
+    await quoteNavBar.openMoreMenu();
     await subNavBarPage.selectCopyQuote();
     await subNavBarPage.copyToExistingQuote(targetQuoteNo);
     await subNavBarPage.expectToast("Copy quote successful.");
