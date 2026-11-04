@@ -12,7 +12,7 @@ setup("CSR Sign In", async ({ page }) => {
   await loginPage.loginAsCsr(
     process.env.CSR_USERNAME!,
     process.env.CSR_PASSWORD!,
-    "SKY Smash & Repair",
+    "PartsCheck",
   ); //SKY Smash & Repair // QA Branch AU 2
 
   await page.waitForURL("**/v2/");

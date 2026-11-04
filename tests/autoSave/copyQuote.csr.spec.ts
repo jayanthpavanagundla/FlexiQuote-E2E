@@ -104,7 +104,7 @@ test.describe("Auto Save", () => {
   // TEST 02
   // SOURCE AH-OFF → TARGET AH-ON
    test("Copy Quote from AH-OFF to AH-ON", async ({ page }) => {
-      test.setTimeout(200_000);
+      test.setTimeout(120_000);
       let targetQuoteNo = String(Number(quoteNumber) - 7);
       // Verify target quote (AH-ON)
       await navBarPage.openQuoteDropdown();
@@ -155,7 +155,7 @@ test.describe("Auto Save", () => {
   // TEST 03
   // SOURCE AH-OFF → TARGET AH-OFF
   test("Copy Quote from AH-OFF to AH-OFF", async ({ page }) => {
-    test.setTimeout(200_000);
+    test.setTimeout(120_000);
     let targetQuoteNo = String(Number(quoteNumber) - 8);
     // Configure target quote (AH-OFF)
     await navBarPage.openQuoteDropdown();
@@ -206,7 +206,7 @@ test.describe("Auto Save", () => {
   // TEST 04
   // SOURCE AH-ON → TARGET AH-OFF
   test("Copy Quote from AH-ON to AH-OFF", async ({ page }) => {
-    test.setTimeout(200_000);
+    test.setTimeout(120_000);
     let targetQuoteNo = String(Number(quoteNumber) - 9);
     // Configure target quote (AH-OFF)
     await navBarPage.openQuoteDropdown();
@@ -259,7 +259,7 @@ test.describe("Auto Save", () => {
   // TEST 05
   // SOURCE AH-ON → TARGET AH-ON
   test("Copy Quote from AH-ON to AH-ON", async ({ page }) => {
-    test.setTimeout(200_000);
+    test.setTimeout(120_000);
     let targetQuoteNo = String(Number(quoteNumber) - 10);
     // Configure target quote (AH-ON)
     await navBarPage.openQuoteDropdown();

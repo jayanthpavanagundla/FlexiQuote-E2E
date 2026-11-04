@@ -19,7 +19,7 @@ export class LoginPage extends BasePage {
     this.signInButton = page.getByRole("button", { name: "Sign In" });
     this.proceedButton = page.getByRole("button", { name: "Proceed" });
     this.nextButton = page.getByRole("button", { name: "Next" });
-    this.companySearch = page.getByPlaceholder("Select a company");
+    this.companySearch = page.locator("#csr-company");
   }
 
   private async handleProceedModal() {
@@ -67,8 +67,8 @@ export class LoginPage extends BasePage {
       await this.nextButton.click();
       await this.companySearch.fill(companyName);
       await this.page
-        .getByRole("listitem")
-        .filter({ hasText: companyName })
+        .locator(".autocomplete .dropdown-menu")
+        .getByRole("button", { name: companyName, exact: true })
         .click();
       await this.signInButton.click();
       await this.handleProceedModal();
