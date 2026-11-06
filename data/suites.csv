@@ -1,3 +1,2 @@
 "DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
-"","10582","Quick Item Listing Preview","flexiquote-csr","2026-09-04","passed","2026-09-04","Listing Preview","tests/regression/listingPreview.csr.spec.ts","",""
-"","15139","CSR Sign In","csr-setup","2026-09-04","passed","2026-09-04","","auth-setup/auth.csr.setup.ts","",""
+"","15089","CSR Sign In","csr-setup","2026-11-06","passed","2026-11-06","","auth-setup/auth.csr.setup.ts","",""

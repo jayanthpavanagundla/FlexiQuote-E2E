@@ -1,1 +1,1 @@
-{"reportName":"FlexiQuote E2E","testRuns":[],"statistic":{"failed":0,"broken":0,"skipped":0,"passed":2,"unknown":0,"total":2},"time":{"start":1788503166462,"stop":1788503193930,"duration":27468,"minDuration":10582,"maxDuration":15139,"sumDuration":25721}}
+{"reportName":"FlexiQuote E2E","testRuns":[],"statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1},"time":{"start":1793953728845,"stop":1793953743934,"duration":15089,"minDuration":15089,"maxDuration":15089,"sumDuration":15089}}
